@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { BarChart, Users, FileText, TrendingUp } from "lucide-react"
 
-export default function Home() {
+const Home = () => {
   return (
     <div className="space-y-6">
       <div>
@@ -102,3 +102,5 @@ export default function Home() {
     </div>
   );
 }
+
+export default Home

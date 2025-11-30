@@ -19,7 +19,7 @@ const menuItems = [
   { icon: Settings, label: "設定", href: "/settings" },
 ]
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const pathname = usePathname()
 
   return (
