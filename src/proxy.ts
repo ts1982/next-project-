@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // すべてのレスポンスに追加のセキュリティヘッダーを設定
   const response = NextResponse.next();
 
@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
-// middleware を適用するパスを指定
+// proxy を適用するパスを指定
 export const config = {
   matcher: [
     /*
