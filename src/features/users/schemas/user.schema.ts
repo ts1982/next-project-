@@ -1,14 +1,26 @@
 import { z } from "zod";
 
+// パスワードの正規表現: 8文字以上、英字と数字を含む
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
+
 // ユーザー作成用のzodスキーマ
 export const createUserSchema = z.object({
   email: z
-    .string()
-    .email({ message: "有効なメールアドレスを入力してください" }),
+    .string({ message: "メールアドレスは必須です" })
+    .email({ message: "有効なメールアドレスを入力してください" })
+    .toLowerCase()
+    .trim(),
   password: z
-    .string()
-    .min(4, { message: "パスワードは4文字以上で入力してください" }),
-  name: z.string().min(1, { message: "名前を入力してください" }),
+    .string({ message: "パスワードは必須です" })
+    .min(8, { message: "パスワードは8文字以上で入力してください" })
+    .regex(PASSWORD_REGEX, {
+      message: "パスワードは英字と数字を含む必要があります",
+    }),
+  name: z
+    .string({ message: "名前は必須です" })
+    .min(1, { message: "名前を入力してください" })
+    .max(100, { message: "名前は100文字以内で入力してください" })
+    .trim(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -18,11 +30,21 @@ export const updateUserSchema = z.object({
   email: z
     .string()
     .email({ message: "有効なメールアドレスを入力してください" })
+    .toLowerCase()
+    .trim()
     .optional(),
-  name: z.string().min(1, { message: "名前を入力してください" }).optional(),
+  name: z
+    .string()
+    .min(1, { message: "名前を入力してください" })
+    .max(100, { message: "名前は100文字以内で入力してください" })
+    .trim()
+    .optional(),
   password: z
     .string()
-    .min(4, { message: "パスワードは4文字以上で入力してください" })
+    .min(8, { message: "パスワードは8文字以上で入力してください" })
+    .regex(PASSWORD_REGEX, {
+      message: "パスワードは英字と数字を含む必要があります",
+    })
     .optional(),
 });
 

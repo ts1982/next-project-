@@ -1,0 +1,9 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# ブロックするパス（必要に応じて追加）
+Disallow: /api/
+
+# サイトマップ
+Sitemap: https://yourdomain.com/sitemap.xml
