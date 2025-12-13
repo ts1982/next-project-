@@ -1,8 +1,10 @@
 import { Suspense } from "react"
+import Link from "next/link"
 import { Users as UsersIcon } from "lucide-react"
 import { UserSearch, UserTable, UserTableSkeleton } from "@/features/users"
 import { getUserList } from "@/lib/services/user.service"
 import { PAGINATION } from "@/lib/constants/pagination"
+import { Button } from "@/components/ui/button"
 
 interface PageProps {
   searchParams: Promise<{
@@ -21,9 +23,14 @@ const UsersPage = async ({ searchParams }: PageProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex items-center gap-2">
-          <UsersIcon className="h-8 w-8" />
-          <h1 className="text-3xl font-bold tracking-tight">ユーザー管理</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <UsersIcon className="h-8 w-8" />
+            <h1 className="text-3xl font-bold tracking-tight">ユーザー管理</h1>
+          </div>
+          <Link href="/users/create">
+            <Button>新規作成</Button>
+          </Link>
         </div>
         <p className="text-muted-foreground">
           登録ユーザーの一覧を表示・検索できます

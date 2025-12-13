@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { faker } from "@faker-js/faker";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -12,10 +13,12 @@ async function main() {
 
   // ユーザーデータを生成
   const users = [];
+  const defaultPassword = await bcrypt.hash("password", 10);
   for (let i = 0; i < 50; i++) {
     users.push({
       email: faker.internet.email(),
       name: faker.person.fullName(),
+      password: defaultPassword,
     });
   }
 
