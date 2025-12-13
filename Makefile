@@ -23,6 +23,7 @@ help:
 	@echo "  make prisma-studio    - Open Prisma Studio"
 	@echo "  make prisma-generate  - Generate Prisma Client"
 	@echo "  make prisma-format    - Format schema file"
+	@echo "  make repl             - Open Prisma REPL"
 	@echo "  make seed             - Run database seed"
 	@echo ""
 	@echo "Utility:"
@@ -84,6 +85,9 @@ prisma-generate:
 
 prisma-format:
 	npx prisma format
+
+repl:
+	npm run repl
 
 seed:
 	npx tsx prisma/seed.ts

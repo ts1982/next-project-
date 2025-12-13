@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserSchema } from "@/lib/types/user";
+import { createUserSchema } from "@/features/users/schemas/user.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ZodError } from "zod";

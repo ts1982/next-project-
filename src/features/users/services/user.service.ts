@@ -1,11 +1,11 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { PAGINATION } from "@/lib/constants/pagination";
 import type {
   UserListResponse,
-  CreateUserInput,
   CreateUserResponse,
-} from "@/lib/types/user";
-import { createUserSchema } from "@/lib/types/user";
+} from "@/features/users/types/user.types";
+import type { CreateUserInput } from "@/features/users/schemas/user.schema";
+import { createUserSchema } from "@/features/users/schemas/user.schema";
 import bcrypt from "bcryptjs";
 
 export const getUserList = async (

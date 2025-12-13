@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import Link from "next/link"
 import { Users as UsersIcon } from "lucide-react"
 import { UserSearch, UserTable, UserTableSkeleton } from "@/features/users"
-import { getUserList } from "@/lib/services/user.service"
+import { getUserList } from "@/features/users"
 import { PAGINATION } from "@/lib/constants/pagination"
 import { Button } from "@/components/ui/button"
 

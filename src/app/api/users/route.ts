@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { createUserSchema } from "@/lib/types/user";
-import { createUser } from "@/lib/services/user.service";
+import { prisma } from "@/lib/db/prisma";
+import { createUserSchema } from "@/features/users/schemas/user.schema";
+import { createUser } from "@/features/users/services/user.service";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 
