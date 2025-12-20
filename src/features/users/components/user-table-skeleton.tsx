@@ -14,7 +14,7 @@ export const UserTableSkeleton = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">ID</TableHead>
+              <TableHead className="w-20">ID</TableHead>
               <TableHead>名前</TableHead>
               <TableHead>メールアドレス</TableHead>
               <TableHead>登録日</TableHead>

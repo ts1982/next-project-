@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Menu, Search, Bell, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -17,6 +18,16 @@ interface HeaderProps {
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
+  // Radix(Dialog/Sheet)はSSR時にIDがズレてhydration mismatchになることがあるため、
+  // マウント後にのみ描画して初期HTMLとクライアント初期描画を一致させる。
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    // eslint (react-hooks/set-state-in-effect) 対策: effect内で同期的にsetStateせず、
+    // マイクロタスクに逃がして初回レンダーの安定性を優先する。
+    Promise.resolve().then(() => setMounted(true))
+  }, [])
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -44,36 +55,50 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           <Button variant="ghost" size="icon" className="hidden sm:flex">
             <Bell className="h-5 w-5" />
           </Button>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar>
-                  <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>ユーザーメニュー</SheetTitle>
-                <SheetDescription>
-                  アカウント設定やプロフィールを管理できます
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mt-6 space-y-4">
-                <Button variant="outline" className="w-full justify-start">
-                  <User className="mr-2 h-4 w-4" />
-                  プロフィール
+          {mounted ? (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar>
+                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                    <AvatarFallback>U</AvatarFallback>
+                  </Avatar>
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  設定
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  ログアウト
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>ユーザーメニュー</SheetTitle>
+                  <SheetDescription>
+                    アカウント設定やプロフィールを管理できます
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-6 space-y-4">
+                  <Button variant="outline" className="w-full justify-start">
+                    <User className="mr-2 h-4 w-4" />
+                    プロフィール
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start">
+                    設定
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start">
+                    ログアウト
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <Button
+              variant="ghost"
+              className="relative h-10 w-10 rounded-full"
+              aria-label="ユーザーメニュー"
+              disabled
+            >
+              <Avatar>
+                <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+            </Button>
+          )}
         </div>
       </div>
     </header>

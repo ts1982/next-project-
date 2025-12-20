@@ -58,14 +58,18 @@ export const createUser = async (
       name: validated.name,
       password: hashedPassword,
     },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
-
-  // レスポンスからpasswordを除外
-  const { password: _, ...userWithoutPassword } = user;
 
   return {
     user: {
-      ...userWithoutPassword,
+      ...user,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
     },
