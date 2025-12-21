@@ -3,9 +3,16 @@ import { PAGINATION } from "@/lib/constants/pagination";
 import type {
   UserListResponse,
   CreateUserResponse,
+  UpdateUserResponse,
 } from "@/features/users/types/user.types";
-import type { CreateUserInput } from "@/features/users/schemas/user.schema";
-import { createUserSchema } from "@/features/users/schemas/user.schema";
+import type {
+  CreateUserInput,
+  UpdateUserInput,
+} from "@/features/users/schemas/user.schema";
+import {
+  createUserSchema,
+  updateUserSchema,
+} from "@/features/users/schemas/user.schema";
 import bcrypt from "bcryptjs";
 
 export const getUserList = async (
@@ -58,6 +65,40 @@ export const createUser = async (
       name: validated.name,
       password: hashedPassword,
     },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return {
+    user: {
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    },
+  };
+};
+
+export const updateUser = async (
+  id: number,
+  input: UpdateUserInput
+): Promise<UpdateUserResponse> => {
+  const validated = updateUserSchema.parse(input);
+
+  const data: Partial<{ name: string; email: string; password: string }> = {};
+  if (validated.name) data.name = validated.name;
+  if (validated.email) data.email = validated.email;
+  if (validated.password) {
+    data.password = await bcrypt.hash(validated.password, 10);
+  }
+
+  const user = await prisma.user.update({
+    where: { id },
+    data,
     select: {
       id: true,
       email: true,

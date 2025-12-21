@@ -4,13 +4,14 @@ export { UserTableSkeleton } from "./components/user-table-skeleton";
 export { UserCreateForm } from "./components/user-create-form";
 
 // Services
-export { getUserList, createUser } from "./services/user.service";
+export { getUserList, createUser, updateUser } from "./services/user.service";
 
 // Types
 export type {
   User,
   UserListResponse,
   CreateUserResponse,
+  UpdateUserResponse,
 } from "./types/user.types";
 
 // Schemas

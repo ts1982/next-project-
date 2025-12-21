@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { usePagination } from "@/lib/hooks"
+import { UserEditModal } from "./user-edit-modal"
 
 interface User {
   id: number
@@ -49,12 +50,13 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
               <TableHead>メールアドレス</TableHead>
               <TableHead>登録日</TableHead>
               <TableHead>更新日</TableHead>
+              <TableHead className="w-28">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   ユーザーが見つかりませんでした
                 </TableCell>
               </TableRow>
@@ -73,6 +75,9 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
                     {format(user.updatedAt, "yyyy/MM/dd HH:mm", {
                       locale: ja,
                     })}
+                  </TableCell>
+                  <TableCell>
+                    <UserEditModal user={{ id: user.id, name: user.name, email: user.email }} />
                   </TableCell>
                 </TableRow>
               ))

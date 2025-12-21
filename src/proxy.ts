@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-
-export function proxy(_request: NextRequest) {
+export function proxy() {
   // すべてのレスポンスに追加のセキュリティヘッダーを設定
   const response = NextResponse.next();
 
