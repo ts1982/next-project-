@@ -12,11 +12,10 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { icon: Home, label: "ホーム", href: "/" },
-  { icon: FileText, label: "ドキュメント", href: "/docs" },
-  { icon: Users, label: "ユーザー", href: "/users" },
-  { icon: BarChart, label: "分析", href: "/analytics" },
-  { icon: Settings, label: "設定", href: "/settings" },
+  { icon: Home, label: "ダッシュボード", href: "/dashboard" },
+  { icon: Users, label: "ユーザー管理", href: "/users" },
+  { icon: BarChart, label: "分析", href: "/dashboard/analytics" },
+  { icon: Settings, label: "設定", href: "/dashboard/settings" },
 ]
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
