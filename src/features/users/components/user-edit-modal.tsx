@@ -73,7 +73,7 @@ export const UserEditModal = ({ user }: UserEditModalProps) => {
 
       setOpen(false);
       startTransition(() => router.refresh());
-    } catch (err) {
+    } catch {
       setErrors({ general: "予期しないエラーが発生しました" });
     } finally {
       setIsSubmitting(false);

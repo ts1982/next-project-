@@ -17,7 +17,7 @@ function getClientIp(request: NextRequest): string {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const clientIp = getClientIp(request);
   const { id: idParam } = await params;
@@ -26,7 +26,7 @@ export async function PATCH(
   if (Number.isNaN(id)) {
     return NextResponse.json(
       errorResponse("不正なユーザーIDです", undefined, "INVALID_ID"),
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -38,9 +38,9 @@ export async function PATCH(
         errorResponse(
           "レート制限を超えました。しばらく待ってから再試行してください。",
           undefined,
-          "RATE_LIMIT_EXCEEDED"
+          "RATE_LIMIT_EXCEEDED",
         ),
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -52,7 +52,7 @@ export async function PATCH(
     logger.info("User updated successfully", { id });
     return NextResponse.json(
       successResponse(result, "ユーザーを更新しました"),
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     if (error instanceof ZodError) {
@@ -65,7 +65,7 @@ export async function PATCH(
       logger.warn("Validation error", { fieldErrors, clientIp });
       return NextResponse.json(
         errorResponse("バリデーションエラー", fieldErrors, "VALIDATION_ERROR"),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -76,16 +76,16 @@ export async function PATCH(
           errorResponse(
             "このメールアドレスは既に使用されています",
             undefined,
-            "DUPLICATE_EMAIL"
+            "DUPLICATE_EMAIL",
           ),
-          { status: 409 }
+          { status: 409 },
         );
       }
       if (error.code === "P2025") {
         logger.warn("User not found", { id, clientIp });
         return NextResponse.json(
           errorResponse("ユーザーが見つかりません", undefined, "NOT_FOUND"),
-          { status: 404 }
+          { status: 404 },
         );
       }
     }
@@ -99,7 +99,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const clientIp = getClientIp(request);
   const { id: idParam } = await params;
@@ -108,7 +108,7 @@ export async function DELETE(
   if (Number.isNaN(id)) {
     return NextResponse.json(
       errorResponse("不正なユーザーIDです", undefined, "INVALID_ID"),
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -129,7 +129,7 @@ export async function DELETE(
         logger.warn("User not found", { id, clientIp });
         return NextResponse.json(
           errorResponse("ユーザーが見つかりません", undefined, "NOT_FOUND"),
-          { status: 404 }
+          { status: 404 },
         );
       }
     }

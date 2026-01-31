@@ -1,5 +1,6 @@
 import { getStoreList } from "@/features/stores"
 import { PAGINATION } from "@/lib/constants/pagination"
+import { getDefaultTimezone } from "@/lib/utils/timezone"
 import { StoresClientPage } from "./page.client"
 
 interface PageProps {
@@ -15,12 +16,16 @@ const StoresPage = async ({ searchParams }: PageProps) => {
   const page = parseInt(params.page || String(PAGINATION.DEFAULT_PAGE))
 
   const data = await getStoreList(search, page)
+  
+  // サーバーサイドでタイムゾーンを取得
+  const timezone = getDefaultTimezone()
 
   return (
     <StoresClientPage
       initialStores={data.stores}
       initialSearch={search}
       initialPagination={data.pagination}
+      timezone={timezone}
     />
   )
 }

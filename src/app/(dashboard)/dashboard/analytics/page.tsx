@@ -21,7 +21,7 @@ const AnalyticsPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] flex items-center justify-center border-2 border-dashed rounded-lg">
+            <div className="h-75 flex items-center justify-center border-2 border-dashed rounded-lg">
               <p className="text-muted-foreground">グラフを表示予定（準備中）</p>
             </div>
           </CardContent>

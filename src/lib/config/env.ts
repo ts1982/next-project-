@@ -16,6 +16,13 @@ const envSchema = z.object({
     })
     .default("development"),
 
+  // Default Timezone
+  DEFAULT_TIMEZONE: z
+    .string({
+      message: "DEFAULT_TIMEZONEが設定されていません",
+    })
+    .default("Asia/Tokyo"),
+
   // Next.js Public URLs
   NEXT_PUBLIC_APP_URL: z
     .string()

@@ -5,8 +5,11 @@ export interface Store {
   address: string;
   phone: string | null;
   email: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  publishedAt: string | null;
+  unpublishedAt: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface StoreListItem {
@@ -14,7 +17,10 @@ export interface StoreListItem {
   name: string;
   address: string;
   phone: string | null;
-  createdAt: Date;
+  publishedAt: string | null;
+  unpublishedAt: string | null;
+  isPublic: boolean;
+  createdAt: string;
 }
 
 export interface CreateStoreInput {
@@ -23,6 +29,9 @@ export interface CreateStoreInput {
   address: string;
   phone?: string;
   email?: string;
+  publishedAt?: string | null;
+  unpublishedAt?: string | null;
+  timezone?: string;
 }
 
 export interface UpdateStoreInput {
@@ -31,4 +40,7 @@ export interface UpdateStoreInput {
   address?: string;
   phone?: string | null;
   email?: string | null;
+  publishedAt?: string | null;
+  unpublishedAt?: string | null;
+  timezone?: string;
 }
