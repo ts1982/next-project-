@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { format } from "date-fns"
 import { ja } from "date-fns/locale"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -13,15 +14,8 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { usePagination } from "@/lib/hooks"
-import { UserEditModal } from "./user-edit-modal"
-
-interface User {
-  id: number
-  email: string
-  name: string | null
-  createdAt: Date
-  updatedAt: Date
-}
+import { UserDetailModal } from "./user-detail-modal"
+import type { User } from "../types/user.types"
 
 interface UserTableProps {
   users: User[]
@@ -38,6 +32,13 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
   const { page, totalPages, total } = pagination
   const start = (page - 1) * pagination.limit + 1
   const end = Math.min(page * pagination.limit, total)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleRowClick = (user: User) => {
+    setSelectedUser(user)
+    setIsModalOpen(true)
+  }
 
   return (
     <div className="space-y-4">
@@ -50,19 +51,22 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
               <TableHead>メールアドレス</TableHead>
               <TableHead>登録日</TableHead>
               <TableHead>更新日</TableHead>
-              <TableHead className="w-28">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   ユーザーが見つかりませんでした
                 </TableCell>
               </TableRow>
             ) : (
               users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow
+                  key={user.id}
+                  onClick={() => handleRowClick(user)}
+                  className="cursor-pointer hover:bg-muted/50"
+                >
                   <TableCell className="font-medium">{user.id}</TableCell>
                   <TableCell>{user.name || "-"}</TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -75,9 +79,6 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
                     {format(user.updatedAt, "yyyy/MM/dd HH:mm", {
                       locale: ja,
                     })}
-                  </TableCell>
-                  <TableCell>
-                    <UserEditModal user={{ id: user.id, name: user.name, email: user.email }} />
                   </TableCell>
                 </TableRow>
               ))
@@ -128,7 +129,15 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
           </div>
         </div>
       )}
+
+      <UserDetailModal
+        user={selectedUser}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setSelectedUser(null)
+        }}
+      />
     </div>
   )
 }
-

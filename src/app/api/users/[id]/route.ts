@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { ZodError } from "zod";
 import { updateUser } from "@/features/users/services/user.service";
+import { prisma } from "@/lib/db/prisma";
 import { errorResponse, successResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
 import { rateLimit, RATE_LIMITS } from "@/lib/middleware/rate-limit";
@@ -91,6 +92,50 @@ export async function PATCH(
 
     logger.error("Failed to update user", { error, id, clientIp });
     return NextResponse.json(errorResponse("ユーザーの更新に失敗しました"), {
+      status: 500,
+    });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const clientIp = getClientIp(request);
+  const { id: idParam } = await params;
+  const id = Number(idParam);
+
+  if (Number.isNaN(id)) {
+    return NextResponse.json(
+      errorResponse("不正なユーザーIDです", undefined, "INVALID_ID"),
+      { status: 400 }
+    );
+  }
+
+  try {
+    logger.info("Deleting user", { id, clientIp });
+
+    await prisma.user.delete({
+      where: { id },
+    });
+
+    logger.info("User deleted successfully", { id });
+    return NextResponse.json(successResponse(null, "ユーザーを削除しました"), {
+      status: 200,
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2025") {
+        logger.warn("User not found", { id, clientIp });
+        return NextResponse.json(
+          errorResponse("ユーザーが見つかりません", undefined, "NOT_FOUND"),
+          { status: 404 }
+        );
+      }
+    }
+
+    logger.error("Failed to delete user", { error, id, clientIp });
+    return NextResponse.json(errorResponse("ユーザーの削除に失敗しました"), {
       status: 500,
     });
   }

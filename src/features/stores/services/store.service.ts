@@ -1,9 +1,13 @@
-import { prisma } from "@/lib/db/prisma"
-import { PAGINATION } from "@/lib/constants/pagination"
-import type { Store, CreateStoreInput, UpdateStoreInput } from "../types/store.types"
+import { prisma } from "@/lib/db/prisma";
+import { PAGINATION } from "@/lib/constants/pagination";
+import type {
+  Store,
+  CreateStoreInput,
+  UpdateStoreInput,
+} from "../types/store.types";
 
 export async function getStoreList(search: string = "", page: number = 1) {
-  const offset = (page - 1) * PAGINATION.ITEMS_PER_PAGE
+  const offset = (page - 1) * PAGINATION.ITEMS_PER_PAGE;
 
   const where = search
     ? {
@@ -12,7 +16,7 @@ export async function getStoreList(search: string = "", page: number = 1) {
           { address: { contains: search, mode: "insensitive" as const } },
         ],
       }
-    : {}
+    : {};
 
   const [stores, total] = await Promise.all([
     prisma.store.findMany({
@@ -22,7 +26,7 @@ export async function getStoreList(search: string = "", page: number = 1) {
       skip: offset,
     }),
     prisma.store.count({ where }),
-  ])
+  ]);
 
   return {
     stores,
@@ -32,13 +36,13 @@ export async function getStoreList(search: string = "", page: number = 1) {
       pageSize: PAGINATION.ITEMS_PER_PAGE,
       totalPages: Math.ceil(total / PAGINATION.ITEMS_PER_PAGE),
     },
-  }
+  };
 }
 
 export async function getStoreById(id: number): Promise<Store | null> {
   return prisma.store.findUnique({
     where: { id },
-  })
+  });
 }
 
 export async function createStore(data: CreateStoreInput): Promise<Store> {
@@ -50,10 +54,13 @@ export async function createStore(data: CreateStoreInput): Promise<Store> {
       phone: data.phone || null,
       email: data.email || null,
     },
-  })
+  });
 }
 
-export async function updateStore(id: number, data: UpdateStoreInput): Promise<Store> {
+export async function updateStore(
+  id: number,
+  data: UpdateStoreInput,
+): Promise<Store> {
   return prisma.store.update({
     where: { id },
     data: {
@@ -63,11 +70,11 @@ export async function updateStore(id: number, data: UpdateStoreInput): Promise<S
       ...(data.phone !== undefined && { phone: data.phone }),
       ...(data.email !== undefined && { email: data.email }),
     },
-  })
+  });
 }
 
 export async function deleteStore(id: number): Promise<void> {
   await prisma.store.delete({
     where: { id },
-  })
+  });
 }

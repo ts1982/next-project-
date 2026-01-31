@@ -1,11 +1,14 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const createStoreSchema = z.object({
   name: z
     .string({ message: "店舗名は必須です" })
     .min(1, "店舗名は必須です")
     .max(100, "店舗名は100文字以内で入力してください"),
-  description: z.string().max(500, "説明は500文字以内で入力してください").optional(),
+  description: z
+    .string()
+    .max(500, "説明は500文字以内で入力してください")
+    .optional(),
   address: z
     .string({ message: "住所は必須です" })
     .min(1, "住所は必須です")
@@ -22,9 +25,9 @@ export const createStoreSchema = z.object({
     .max(100, "メールアドレスは100文字以内で入力してください")
     .optional()
     .or(z.literal("")),
-})
+});
 
-export const updateStoreSchema = createStoreSchema.partial()
+export const updateStoreSchema = createStoreSchema.partial();
 
-export type CreateStoreSchema = z.infer<typeof createStoreSchema>
-export type UpdateStoreSchema = z.infer<typeof updateStoreSchema>
+export type CreateStoreSchema = z.infer<typeof createStoreSchema>;
+export type UpdateStoreSchema = z.infer<typeof updateStoreSchema>;

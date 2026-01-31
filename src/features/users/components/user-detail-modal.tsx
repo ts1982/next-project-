@@ -13,71 +13,72 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { updateStoreSchema, type UpdateStoreSchema } from "../schemas/store.schema"
-import type { Store } from "../types/store.types"
+import type { User } from "../types/user.types"
 
-interface StoreDetailModalProps {
-  store: Store | null
+interface UpdateUserInput {
+  name?: string
+  email?: string
+  password?: string
+}
+
+interface UserDetailModalProps {
+  user: User | null
   isOpen: boolean
   onClose: () => void
 }
 
-export function StoreDetailModal({ store, isOpen, onClose }: StoreDetailModalProps) {
+export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("detail")
-  const [formData, setFormData] = useState<UpdateStoreSchema>({})
+  const [formData, setFormData] = useState<UpdateUserInput>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // storeが変わったら編集フォームを初期化
+  // userが変わったら編集フォームを初期化
   useEffect(() => {
-    if (store) {
+    if (user) {
       setFormData({
-        name: store.name,
-        description: store.description || "",
-        address: store.address,
-        phone: store.phone || "",
-        email: store.email || "",
+        name: user.name,
+        email: user.email,
+        password: "",
       })
     }
-  }, [store])
+  }, [user])
 
-  if (!store) return null
-
-  // 編集フォームの初期化
-  const initializeEditForm = () => {
-    setFormData({
-      name: store.name,
-      description: store.description || "",
-      address: store.address,
-      phone: store.phone || "",
-      email: store.email || "",
-    })
-    setErrors({})
-  }
+  if (!user) return null
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
 
-    const result = updateStoreSchema.safeParse(formData)
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {}
-      result.error.issues.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as string] = err.message
-        }
-      })
+    // 簡易バリデーション
+    const fieldErrors: Record<string, string> = {}
+    if (formData.name && formData.name.length < 1) {
+      fieldErrors.name = "名前は必須です"
+    }
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      fieldErrors.email = "有効なメールアドレスを入力してください"
+    }
+    if (formData.password && formData.password.length > 0 && formData.password.length < 4) {
+      fieldErrors.password = "パスワードは4文字以上で入力してください"
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors)
       return
     }
 
     setIsSubmitting(true)
     try {
-      const response = await fetch(`/api/stores/${store.id}`, {
+      const updateData: UpdateUserInput = {}
+      if (formData.name) updateData.name = formData.name
+      if (formData.email) updateData.email = formData.email
+      if (formData.password) updateData.password = formData.password
+
+      const response = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(result.data),
+        body: JSON.stringify(updateData),
       })
 
       if (!response.ok) {
@@ -96,13 +97,13 @@ export function StoreDetailModal({ store, isOpen, onClose }: StoreDetailModalPro
   }
 
   const handleDelete = async () => {
-    if (!confirm(`「${store.name}」を削除してもよろしいですか？`)) {
+    if (!confirm(`「${user.name}」を削除してもよろしいですか？`)) {
       return
     }
 
     setIsSubmitting(true)
     try {
-      const response = await fetch(`/api/stores/${store.id}`, {
+      const response = await fetch(`/api/users/${user.id}`, {
         method: "DELETE",
       })
 
@@ -130,68 +131,38 @@ export function StoreDetailModal({ store, isOpen, onClose }: StoreDetailModalPro
         }
       }}
     >
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-150">
         <DialogHeader>
-          <DialogTitle>{store.name}</DialogTitle>
-          <DialogDescription>店舗の詳細情報</DialogDescription>
+          <DialogTitle>{user.name}</DialogTitle>
+          <DialogDescription>ユーザーの詳細情報</DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="detail">詳細</TabsTrigger>
-            <TabsTrigger
-              value="edit"
-              onClick={() => {
-                if (activeTab !== "edit") {
-                  initializeEditForm()
-                }
-              }}
-            >
-              編集
-            </TabsTrigger>
+            <TabsTrigger value="edit">編集</TabsTrigger>
           </TabsList>
 
           <TabsContent value="detail" className="space-y-4 mt-4">
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">店舗名</label>
-                <p className="text-base">{store.name}</p>
+                <label className="text-sm font-medium text-muted-foreground">名前</label>
+                <p className="text-base">{user.name}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-muted-foreground">住所</label>
-                <p className="text-base">{store.address}</p>
+                <label className="text-sm font-medium text-muted-foreground">
+                  メールアドレス
+                </label>
+                <p className="text-base">{user.email}</p>
               </div>
-
-              {store.phone && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">電話番号</label>
-                  <p className="text-base">{store.phone}</p>
-                </div>
-              )}
-
-              {store.email && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    メールアドレス
-                  </label>
-                  <p className="text-base">{store.email}</p>
-                </div>
-              )}
-
-              {store.description && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">説明</label>
-                  <p className="text-base whitespace-pre-wrap">{store.description}</p>
-                </div>
-              )}
 
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground">
-                  作成日: {new Date(store.createdAt).toLocaleString("ja-JP")}
+                  作成日: {new Date(user.createdAt).toLocaleString("ja-JP")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  更新日: {new Date(store.updatedAt).toLocaleString("ja-JP")}
+                  更新日: {new Date(user.updatedAt).toLocaleString("ja-JP")}
                 </p>
               </div>
             </div>
@@ -217,7 +188,7 @@ export function StoreDetailModal({ store, isOpen, onClose }: StoreDetailModalPro
             <form onSubmit={handleEdit} className="space-y-4">
               <div>
                 <label htmlFor="edit-name" className="text-sm font-medium">
-                  店舗名 <span className="text-red-500">*</span>
+                  名前 <span className="text-red-500">*</span>
                 </label>
                 <Input
                   id="edit-name"
@@ -228,32 +199,8 @@ export function StoreDetailModal({ store, isOpen, onClose }: StoreDetailModalPro
               </div>
 
               <div>
-                <label htmlFor="edit-address" className="text-sm font-medium">
-                  住所 <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  id="edit-address"
-                  value={formData.address || ""}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
-                {errors.address && <p className="text-sm text-red-500 mt-1">{errors.address}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="edit-phone" className="text-sm font-medium">
-                  電話番号
-                </label>
-                <Input
-                  id="edit-phone"
-                  value={formData.phone || ""}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-                {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
-              </div>
-
-              <div>
                 <label htmlFor="edit-email" className="text-sm font-medium">
-                  メールアドレス
+                  メールアドレス <span className="text-red-500">*</span>
                 </label>
                 <Input
                   id="edit-email"
@@ -265,17 +212,21 @@ export function StoreDetailModal({ store, isOpen, onClose }: StoreDetailModalPro
               </div>
 
               <div>
-                <label htmlFor="edit-description" className="text-sm font-medium">
-                  説明
+                <label htmlFor="edit-password" className="text-sm font-medium">
+                  新しいパスワード
+                  <span className="text-xs text-muted-foreground ml-2">
+                    (変更する場合のみ入力)
+                  </span>
                 </label>
-                <textarea
-                  id="edit-description"
-                  value={formData.description || ""}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full min-h-[80px] px-3 py-2 border rounded-md"
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={formData.password || ""}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="4文字以上"
                 />
-                {errors.description && (
-                  <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+                {errors.password && (
+                  <p className="text-sm text-red-500 mt-1">{errors.password}</p>
                 )}
               </div>
 
