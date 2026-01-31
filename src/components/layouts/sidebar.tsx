@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, FileText, Settings, Users, BarChart, X } from "lucide-react"
+import { Home, Settings, Users, BarChart, X, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +14,7 @@ interface SidebarProps {
 const menuItems = [
   { icon: Home, label: "ダッシュボード", href: "/dashboard" },
   { icon: Users, label: "ユーザー管理", href: "/users" },
+  { icon: Store, label: "店舗管理", href: "/stores" },
   { icon: BarChart, label: "分析", href: "/dashboard/analytics" },
   { icon: Settings, label: "設定", href: "/dashboard/settings" },
 ]

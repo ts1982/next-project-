@@ -8,8 +8,9 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // 既存のデータを削除
+  await prisma.store.deleteMany();
   await prisma.user.deleteMany();
-  console.log("🗑️  Cleared existing users");
+  console.log("🗑️  Cleared existing data");
 
   // ユーザーデータを生成
   const users = [];
@@ -30,14 +31,42 @@ async function main() {
 
   console.log(`✅ Created ${users.length} users`);
 
-  // 作成されたユーザーの一部を表示
-  const sampleUsers = await prisma.user.findMany({
-    take: 5,
+  // 店舗データを生成
+  const stores = [];
+  for (let i = 0; i < 20; i++) {
+    stores.push({
+      name: `${faker.company.name()} ${["本店", "支店", "営業所", "サービスセンター"][Math.floor(Math.random() * 4)]}`,
+      description: faker.company.catchPhrase(),
+      address: `${faker.location.city()}${faker.location.street()}`,
+      phone: faker.phone.number(),
+      email: faker.internet.email().toLowerCase(),
+    });
+  }
+
+  await prisma.store.createMany({
+    data: stores,
   });
 
-  console.log("\n📊 Sample users:");
+  console.log(`✅ Created ${stores.length} stores`);
+
+  // 作成されたデータのサンプルを表示
+  const sampleUsers = await prisma.user.findMany({
+    take: 3,
+  });
+
+  const sampleStores = await prisma.store.findMany({
+    take: 3,
+  });
+
+  console.log("\n📊 Sample data:");
+  console.log("\n👥 Users:");
   sampleUsers.forEach((user) => {
     console.log(`  - ${user.name} (${user.email})`);
+  });
+
+  console.log("\n🏪 Stores:");
+  sampleStores.forEach((store) => {
+    console.log(`  - ${store.name} (${store.address})`);
   });
 
   console.log("\n✨ Seeding completed!");
