@@ -1,23 +1,22 @@
 version: "3.8"
 
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: next-project-mysql
+  postgres:
+    image: postgres:16
+    container_name: next-project-postgres
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: nextdb
-      MYSQL_USER: nextuser
-      MYSQL_PASSWORD: nextpassword
+      POSTGRES_DB: nextdb
+      POSTGRES_USER: nextuser
+      POSTGRES_PASSWORD: nextpassword
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U nextuser -d nextdb"]
       timeout: 20s
       retries: 10
 
 volumes:
-  mysql_data:
+  postgres_data:

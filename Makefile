@@ -11,11 +11,11 @@ help:
 	@echo "  make lint             - Run ESLint"
 	@echo ""
 	@echo "Database:"
-	@echo "  make db-up            - Start MySQL container"
-	@echo "  make db-down          - Stop MySQL container"
-	@echo "  make db-restart       - Restart MySQL container"
-	@echo "  make db-logs          - Show MySQL logs"
-	@echo "  make db-shell         - Open MySQL shell"
+	@echo "  make db-up            - Start PostgreSQL container"
+	@echo "  make db-down          - Stop PostgreSQL container"
+	@echo "  make db-restart       - Restart PostgreSQL container"
+	@echo "  make db-logs          - Show PostgreSQL logs"
+	@echo "  make db-shell         - Open PostgreSQL shell"
 	@echo ""
 	@echo "Prisma:"
 	@echo "  make prisma-migrate   - Create and apply migration"
@@ -47,21 +47,21 @@ lint:
 # Database (Docker)
 db-up:
 	docker-compose up -d
-	@echo "✅ MySQL container started"
+	@echo "✅ PostgreSQL container started"
 
 db-down:
 	docker-compose down
-	@echo "✅ MySQL container stopped"
+	@echo "✅ PostgreSQL container stopped"
 
 db-restart:
 	docker-compose restart
-	@echo "✅ MySQL container restarted"
+	@echo "✅ PostgreSQL container restarted"
 
 db-logs:
-	docker-compose logs -f mysql
+	docker-compose logs -f postgres
 
 db-shell:
-	docker exec -it next-project-mysql mysql -u root -prootpassword nextdb
+	docker exec -it next-project-postgres psql -U nextuser -d nextdb
 
 # Prisma
 prisma-migrate:

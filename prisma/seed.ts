@@ -16,15 +16,16 @@ async function main() {
   const defaultPassword = await bcrypt.hash("password", 10);
   for (let i = 0; i < 50; i++) {
     users.push({
-      email: faker.internet.email(),
+      email: faker.internet.email().toLowerCase(),
       name: faker.person.fullName(),
       password: defaultPassword,
     });
   }
 
-  // バッチで挿入
+  // バッチで挿入（重複するメールアドレスはスキップ）
   await prisma.user.createMany({
     data: users,
+    skipDuplicates: true,
   });
 
   console.log(`✅ Created ${users.length} users`);
