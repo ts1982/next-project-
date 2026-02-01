@@ -24,23 +24,8 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    // 本人確認
-    const user = await requireUser();
-    if (user.id !== id) {
-      logger.warn("Unauthorized user update attempt", {
-        sessionUserId: user.id,
-        targetId: id,
-        clientIp,
-      });
-      return NextResponse.json(
-        errorResponse(
-          "この操作を実行する権限がありません",
-          undefined,
-          "FORBIDDEN",
-        ),
-        { status: 403 },
-      );
-    }
+    // 認証チェック（管理者として認証されているか確認）
+    await requireUser();
 
     const allowed = await patchRateLimit(clientIp);
     if (!allowed) {
@@ -123,6 +108,9 @@ export async function DELETE(
   const { id } = await params;
 
   try {
+    // 認証チェック（管理者として認証されているか確認）
+    await requireUser();
+
     logger.info("Deleting user", { id, clientIp });
 
     await prisma.user.delete({
@@ -134,6 +122,13 @@ export async function DELETE(
       status: 200,
     });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      logger.warn("Unauthorized access", { id, clientIp });
+      return NextResponse.json(
+        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
+        { status: 401 },
+      );
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2025") {
         logger.warn("User not found", { id, clientIp });

@@ -2,6 +2,7 @@ import { getUserList } from "@/features/users"
 import { PAGINATION } from "@/lib/constants/pagination"
 import { getDefaultTimezone } from "@/lib/utils/timezone"
 import { UsersClientPage } from "./page.client"
+import { auth } from "../../../../auth"
 
 interface PageProps {
   searchParams: Promise<{
@@ -14,9 +15,12 @@ const UsersPage = async ({ searchParams }: PageProps) => {
   const params = await searchParams
   const search = params.search || ""
   const page = parseInt(params.page || String(PAGINATION.DEFAULT_PAGE))
-  const timezone = getDefaultTimezone()
 
   const data = await getUserList(search, page)
+
+  // セッションからユーザーのタイムゾーンを取得
+  const session = await auth()
+  const timezone = session?.user?.timezone || getDefaultTimezone()
 
   return (
     <UsersClientPage

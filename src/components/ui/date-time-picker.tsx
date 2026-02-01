@@ -41,6 +41,22 @@ export function DateTimePicker({
   const [timeValue, setTimeValue] = React.useState<string>(
     value ? format(value, "HH:mm") : "00:00"
   );
+  const [timezoneAbbr, setTimezoneAbbr] = React.useState<string>("");
+
+  // タイムゾーン略称をクライアントサイドで取得（SSR/CSR の差分を避ける）
+  React.useEffect(() => {
+    try {
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        timeZoneName: "short",
+      });
+      const parts = formatter.formatToParts(new Date());
+      const tzPart = parts.find((part) => part.type === "timeZoneName");
+      setTimezoneAbbr(tzPart?.value || timezone.split("/").pop() || timezone);
+    } catch {
+      setTimezoneAbbr(timezone);
+    }
+  }, [timezone]);
 
   // 日付と時刻を結合してDateオブジェクトを作成
   const handleDateSelect = (date: Date | undefined) => {
@@ -82,21 +98,6 @@ export function DateTimePicker({
     }
   }, [value]);
 
-  // タイムゾーン略称を取得
-  const getTimezoneAbbr = () => {
-    try {
-      const formatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: timezone,
-        timeZoneName: "short",
-      });
-      const parts = formatter.formatToParts(new Date());
-      const tzPart = parts.find((part) => part.type === "timeZoneName");
-      return tzPart?.value || timezone.split("/").pop() || timezone;
-    } catch {
-      return timezone;
-    }
-  };
-
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <Popover>
@@ -112,8 +113,7 @@ export function DateTimePicker({
             <CalendarIcon className="mr-2 h-4 w-4" />
             {selectedDate ? (
               <span>
-                {format(selectedDate, "yyyy/MM/dd HH:mm")} ({getTimezoneAbbr()}
-                )
+                {format(selectedDate, "yyyy/MM/dd HH:mm")}
               </span>
             ) : (
               <span>{placeholder}</span>
@@ -143,7 +143,7 @@ export function DateTimePicker({
         </PopoverContent>
       </Popover>
       <p className="text-xs text-muted-foreground">
-        タイムゾーン: {timezone} ({getTimezoneAbbr()})
+        タイムゾーン: {timezone}
       </p>
     </div>
   );
