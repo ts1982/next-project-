@@ -26,6 +26,19 @@ async function main() {
   await prisma.user.deleteMany();
   console.log("🗑️  Cleared existing data");
 
+  // 管理者ユーザーを作成
+  const adminPassword = await bcrypt.hash("admin123", 10);
+  await prisma.user.create({
+    data: {
+      email: "admin@example.com",
+      name: "Admin User",
+      password: adminPassword,
+      timezone: "Asia/Hong_Kong", // DEFAULT_TIMEZONE
+      emailVerified: new Date(), // メール認証済み扱い
+    },
+  });
+  console.log("✅ Created admin user (admin@example.com / admin123)");
+
   // ユーザーデータを生成（タイムゾーン付き）
   const users = [];
   const defaultPassword = await bcrypt.hash("password", 10);
@@ -35,6 +48,7 @@ async function main() {
       name: faker.person.fullName(),
       password: defaultPassword,
       timezone: TIMEZONES[Math.floor(Math.random() * TIMEZONES.length)],
+      emailVerified: Math.random() > 0.5 ? new Date() : null, // 50%の確率で認証済み
     });
   }
 

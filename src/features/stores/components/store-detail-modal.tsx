@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
+import { toZonedTime } from "date-fns-tz"
 import { Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,18 +38,26 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
 
   // storeが変わったら編集フォームを初期化
   useEffect(() => {
-    if (store) {
-      setFormData({
-        name: store.name,
-        description: store.description || "",
-        address: store.address,
-        phone: store.phone || "",
-        email: store.email || "",
-      })
-      setPublishedAt(store.publishedAt ? new Date(store.publishedAt) : undefined)
-      setUnpublishedAt(store.unpublishedAt ? new Date(store.unpublishedAt) : undefined)
-    }
-  }, [store])
+    if (!store) return;
+
+    setFormData({
+      name: store.name,
+      description: store.description || "",
+      address: store.address,
+      phone: store.phone || "",
+      email: store.email || "",
+    });
+
+    // UTC日時をユーザーのタイムゾーンに変換
+    // DateTimePickerはブラウザのローカルタイムゾーンで動作するため、
+    // toZonedTimeでUTC→指定タイムゾーンの変換を行う
+    setPublishedAt(
+      store.publishedAt ? toZonedTime(store.publishedAt, timezone) : undefined
+    );
+    setUnpublishedAt(
+      store.unpublishedAt ? toZonedTime(store.unpublishedAt, timezone) : undefined
+    );
+  }, [store, timezone])
 
   if (!store) return null
 
@@ -60,10 +69,17 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
       address: store.address,
       phone: store.phone || "",
       email: store.email || "",
-    })
-    setPublishedAt(store.publishedAt ? new Date(store.publishedAt) : undefined)
-    setUnpublishedAt(store.unpublishedAt ? new Date(store.unpublishedAt) : undefined)
-    setErrors({})
+    });
+
+    // UTC日時をユーザーのタイムゾーンに変換
+    setPublishedAt(
+      store.publishedAt ? toZonedTime(store.publishedAt, timezone) : undefined
+    );
+    setUnpublishedAt(
+      store.unpublishedAt ? toZonedTime(store.unpublishedAt, timezone) : undefined
+    );
+
+    setErrors({});
   }
 
   const handleEdit = async (e: React.FormEvent) => {

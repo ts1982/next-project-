@@ -12,12 +12,14 @@ import type {
 import {
   createUserSchema,
   updateUserSchema,
+  updateTimezoneSchema,
 } from "@/features/users/schemas/user.schema";
 import bcrypt from "bcryptjs";
+import { env } from "@/lib/config/env";
 
 export const getUserList = async (
   search: string,
-  page: number
+  page: number,
 ): Promise<UserListResponse> => {
   const limit = PAGINATION.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
@@ -50,7 +52,7 @@ export const getUserList = async (
 };
 
 export const createUser = async (
-  input: CreateUserInput
+  input: CreateUserInput,
 ): Promise<CreateUserResponse> => {
   // zodでバリデーション
   const validated = createUserSchema.parse(input);
@@ -64,11 +66,14 @@ export const createUser = async (
       email: validated.email,
       name: validated.name,
       password: hashedPassword,
+      timezone: env.DEFAULT_TIMEZONE,
     },
     select: {
       id: true,
       email: true,
       name: true,
+      timezone: true,
+      emailVerified: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -84,17 +89,37 @@ export const createUser = async (
 };
 
 export const updateUser = async (
-  id: number,
-  input: UpdateUserInput
+  id: string,
+  input: UpdateUserInput & { timezone?: string },
 ): Promise<UpdateUserResponse> => {
-  const validated = updateUserSchema.parse(input);
+  // timezone以外をバリデーション
+  const { timezone, ...restInput } = input;
 
-  const data: Partial<{ name: string; email: string; password: string }> = {};
+  let validated: UpdateUserInput = {};
+  // 空でない場合のみバリデーション
+  if (Object.keys(restInput).length > 0) {
+    validated = updateUserSchema.parse(restInput);
+  }
+
+  // timezoneが指定されている場合はバリデーション
+  let validatedTimezone: string | undefined;
+  if (timezone !== undefined) {
+    const timezoneResult = updateTimezoneSchema.parse({ timezone });
+    validatedTimezone = timezoneResult.timezone;
+  }
+
+  const data: Partial<{
+    name: string;
+    email: string;
+    password: string;
+    timezone: string;
+  }> = {};
   if (validated.name) data.name = validated.name;
   if (validated.email) data.email = validated.email;
   if (validated.password) {
     data.password = await bcrypt.hash(validated.password, 10);
   }
+  if (validatedTimezone !== undefined) data.timezone = validatedTimezone;
 
   const user = await prisma.user.update({
     where: { id },
@@ -103,6 +128,8 @@ export const updateUser = async (
       id: true,
       email: true,
       name: true,
+      timezone: true,
+      emailVerified: true,
       createdAt: true,
       updatedAt: true,
     },

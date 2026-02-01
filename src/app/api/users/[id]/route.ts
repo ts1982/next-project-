@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { errorResponse, successResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
 import { rateLimit, RATE_LIMITS } from "@/lib/middleware/rate-limit";
+import { requireUser, UnauthorizedError } from "@/lib/auth/guards";
 
 const patchRateLimit = rateLimit(RATE_LIMITS.POST);
 
@@ -20,17 +21,27 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const clientIp = getClientIp(request);
-  const { id: idParam } = await params;
-  const id = Number(idParam);
-
-  if (Number.isNaN(id)) {
-    return NextResponse.json(
-      errorResponse("不正なユーザーIDです", undefined, "INVALID_ID"),
-      { status: 400 },
-    );
-  }
+  const { id } = await params;
 
   try {
+    // 本人確認
+    const user = await requireUser();
+    if (user.id !== id) {
+      logger.warn("Unauthorized user update attempt", {
+        sessionUserId: user.id,
+        targetId: id,
+        clientIp,
+      });
+      return NextResponse.json(
+        errorResponse(
+          "この操作を実行する権限がありません",
+          undefined,
+          "FORBIDDEN",
+        ),
+        { status: 403 },
+      );
+    }
+
     const allowed = await patchRateLimit(clientIp);
     if (!allowed) {
       logger.warn("Rate limit exceeded", { clientIp, method: "PATCH" });
@@ -55,6 +66,13 @@ export async function PATCH(
       { status: 200 },
     );
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      logger.warn("Unauthorized access", { id, clientIp });
+      return NextResponse.json(
+        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
+        { status: 401 },
+      );
+    }
     if (error instanceof ZodError) {
       const fieldErrors: Record<string, string> = {};
       error.issues.forEach((err) => {
@@ -102,15 +120,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const clientIp = getClientIp(request);
-  const { id: idParam } = await params;
-  const id = Number(idParam);
-
-  if (Number.isNaN(id)) {
-    return NextResponse.json(
-      errorResponse("不正なユーザーIDです", undefined, "INVALID_ID"),
-      { status: 400 },
-    );
-  }
+  const { id } = await params;
 
   try {
     logger.info("Deleting user", { id, clientIp });

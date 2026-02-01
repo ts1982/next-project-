@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Menu, Search, Bell, User } from "lucide-react"
+import { Menu, Search, Bell, User, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -12,12 +12,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { useSession, signOut } from "next-auth/react"
+import Link from "next/link"
 
 interface HeaderProps {
   onMenuClick: () => void
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
+  const { data: session } = useSession()
   // Radix(Dialog/Sheet)はSSR時にIDがズレてhydration mismatchになることがあるため、
   // マウント後にのみ描画して初期HTMLとクライアント初期描画を一致させる。
   const [mounted, setMounted] = useState(false)
@@ -27,6 +30,12 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     // マイクロタスクに逃がして初回レンダーの安定性を優先する。
     Promise.resolve().then(() => setMounted(true))
   }, [])
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" })
+  }
+
+  const userInitial = session?.user?.name?.charAt(0).toUpperCase() || "U"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -60,8 +69,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
               <SheetTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar>
-                    <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                    <AvatarFallback>U</AvatarFallback>
+                    <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || "User"} />
+                    <AvatarFallback>{userInitial}</AvatarFallback>
                   </Avatar>
                 </Button>
               </SheetTrigger>
@@ -69,18 +78,31 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                 <SheetHeader>
                   <SheetTitle>ユーザーメニュー</SheetTitle>
                   <SheetDescription>
-                    アカウント設定やプロフィールを管理できます
+                    {session?.user?.name && (
+                      <span className="block mt-2 text-sm">
+                        ログイン中: {session.user.name}
+                      </span>
+                    )}
+                    {session?.user?.email && (
+                      <span className="block text-xs text-muted-foreground">
+                        {session.user.email}
+                      </span>
+                    )}
                   </SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 space-y-4">
-                  <Button variant="outline" className="w-full justify-start">
-                    <User className="mr-2 h-4 w-4" />
-                    プロフィール
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    設定
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Link href="/dashboard/settings">
+                    <Button variant="outline" className="w-full justify-start">
+                      <User className="mr-2 h-4 w-4" />
+                      設定
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
                     ログアウト
                   </Button>
                 </div>
@@ -94,7 +116,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
               disabled
             >
               <Avatar>
-                <AvatarImage src="https://github.com/shadcn.png" alt="User" />
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
             </Button>

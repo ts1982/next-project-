@@ -2,6 +2,7 @@ import { getStoreList } from "@/features/stores"
 import { PAGINATION } from "@/lib/constants/pagination"
 import { getDefaultTimezone } from "@/lib/utils/timezone"
 import { StoresClientPage } from "./page.client"
+import { auth } from "../../../../auth"
 
 interface PageProps {
   searchParams: Promise<{
@@ -17,8 +18,9 @@ const StoresPage = async ({ searchParams }: PageProps) => {
 
   const data = await getStoreList(search, page)
   
-  // サーバーサイドでタイムゾーンを取得
-  const timezone = getDefaultTimezone()
+  // セッションからユーザーのタイムゾーンを取得
+  const session = await auth()
+  const timezone = session?.user?.timezone || getDefaultTimezone()
 
   return (
     <StoresClientPage

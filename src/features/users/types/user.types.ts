@@ -1,7 +1,9 @@
 export interface User {
-  id: number;
+  id: string;
   email: string;
   name: string;
+  timezone: string | null;
+  emailVerified: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

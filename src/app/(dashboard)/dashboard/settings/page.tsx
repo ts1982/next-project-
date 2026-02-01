@@ -1,9 +1,67 @@
-import { Settings as SettingsIcon } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+"use client";
+
+import { Settings as SettingsIcon } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { TimezoneSelect } from "@/components/ui/timezone-select";
+import { useRouter } from "next/navigation";
 
 const SettingsPage = () => {
+  const { data: session, update } = useSession();
+  const router = useRouter();
+  const [timezone, setTimezone] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    if (session?.user) {
+      setTimezone(session.user.timezone || "");
+    }
+  }, [session]);
+
+  const handleTimezoneUpdate = async () => {
+    if (!session?.user?.id) return;
+
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/users/${session.user.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ timezone }),
+      });
+
+      if (!response.ok) {
+        throw new Error("タイムゾーンの更新に失敗しました");
+      }
+
+      // セッションを更新（新しいタイムゾーンを渡す）
+      await update({
+        user: {
+          ...session.user,
+          timezone: timezone,
+        },
+      });
+      
+      setMessage({ type: "success", text: "タイムゾーンを更新しました" });
+      
+      // 少し待ってからリフレッシュ（セッション更新を確実にする）
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
+    } catch (error) {
+      console.error("Error updating timezone:", error);
+      setMessage({ type: "error", text: "タイムゾーンの更新に失敗しました" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -19,85 +77,69 @@ const SettingsPage = () => {
           <CardHeader>
             <CardTitle>プロフィール設定</CardTitle>
             <CardDescription>
-              ユーザー情報を更新できます
+              ユーザー情報を確認できます
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium">
-                名前
-              </label>
-              <Input id="name" placeholder="山田 太郎" />
+              <label className="text-sm font-medium">名前</label>
+              <p className="text-sm text-muted-foreground">{session?.user?.name || "未設定"}</p>
             </div>
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                メールアドレス
-              </label>
-              <Input id="email" type="email" placeholder="yamada@example.com" />
-            </div>
-            <Button>保存</Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>通知設定</CardTitle>
-            <CardDescription>
-              通知の受信設定を変更できます
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">メール通知</p>
-                <p className="text-sm text-muted-foreground">
-                  重要な更新をメールで受け取る
-                </p>
-              </div>
-              <Button variant="outline" size="sm">
-                オン
-              </Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">プッシュ通知</p>
-                <p className="text-sm text-muted-foreground">
-                  ブラウザでプッシュ通知を受け取る
-                </p>
-              </div>
-              <Button variant="outline" size="sm">
-                オフ
-              </Button>
+              <label className="text-sm font-medium">メールアドレス</label>
+              <p className="text-sm text-muted-foreground">{session?.user?.email || "未設定"}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>セキュリティ</CardTitle>
+            <CardTitle>タイムゾーン設定</CardTitle>
             <CardDescription>
-              パスワードとセキュリティ設定
+              日時表示のタイムゾーンを設定します
+              {timezone && (
+                <span className="block mt-2 font-medium text-foreground">
+                  現在の設定: {timezone}
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="current-password" className="text-sm font-medium">
-                現在のパスワード
+              <label htmlFor="timezone" className="text-sm font-medium">
+                タイムゾーン
               </label>
-              <Input id="current-password" type="password" />
+              <TimezoneSelect
+                value={timezone}
+                onChange={setTimezone}
+                disabled={isLoading}
+              />
+              <p className="text-xs text-muted-foreground">
+                選択したタイムゾーンで日時が表示されます
+              </p>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="new-password" className="text-sm font-medium">
-                新しいパスワード
-              </label>
-              <Input id="new-password" type="password" />
-            </div>
-            <Button>パスワードを変更</Button>
+            {message && (
+              <div
+                className={`rounded-md p-3 text-sm ${
+                  message.type === "success"
+                    ? "bg-green-50 text-green-800"
+                    : "bg-red-50 text-red-800"
+                }`}
+              >
+                {message.text}
+              </div>
+            )}
+            <Button
+              onClick={handleTimezoneUpdate}
+              disabled={isLoading || !timezone}
+            >
+              {isLoading ? "保存中..." : "保存"}
+            </Button>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SettingsPage
+export default SettingsPage;

@@ -54,3 +54,23 @@ export const updateUserSchema = z
   });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+// タイムゾーン更新用のスキーマ
+export const updateTimezoneSchema = z.object({
+  timezone: z
+    .string({ message: "タイムゾーンは必須です" })
+    .min(1, { message: "タイムゾーンを選択してください" })
+    .refine(
+      (tz) => {
+        try {
+          return Intl.supportedValuesOf("timeZone").includes(tz);
+        } catch {
+          // Intl.supportedValuesOf が使えない環境用のフォールバック
+          return /^[A-Za-z]+\/[A-Za-z_]+$/.test(tz);
+        }
+      },
+      { message: "不正なタイムゾーンです" },
+    ),
+});
+
+export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;
