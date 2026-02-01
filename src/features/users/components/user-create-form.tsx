@@ -4,7 +4,7 @@ import { useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import { createUserSchema } from "@/features/users/schemas/user.schema";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/common/form-field";
 import { ZodError } from "zod";
 
 export function UserCreateForm() {
@@ -12,9 +12,6 @@ export function UserCreateForm() {
   const nameId = useId();
   const emailId = useId();
   const passwordId = useId();
-  const nameErrorId = useId();
-  const emailErrorId = useId();
-  const passwordErrorId = useId();
   const formErrorId = useId();
   const successId = useId();
 
@@ -26,19 +23,6 @@ export function UserCreateForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    // フィールド変更時にそのフィールドのエラーをクリア
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,73 +109,38 @@ export function UserCreateForm() {
           </div>
         )}
 
-        {/* 名前フィールド */}
-        <div>
-          <label htmlFor={nameId} className="block text-sm font-medium mb-2">
-            名前 <span className="text-red-500" aria-label="必須">*</span>
-          </label>
-          <Input
-            id={nameId}
-            name="name"
-            type="text"
-            value={formData.name}
-            onChange={handleChange}
-            className={errors.name ? "border-red-500" : ""}
-            aria-required="true"
-            aria-invalid={!!errors.name}
-            aria-describedby={errors.name ? nameErrorId : undefined}
-          />
-          {errors.name && (
-            <p id={nameErrorId} className="mt-1 text-sm text-red-600" role="alert">
-              {errors.name}
-            </p>
-          )}
-        </div>
+        <FormField
+          label="名前"
+          value={formData.name}
+          onChange={(value) => setFormData({ ...formData, name: value })}
+          error={errors.name}
+          required
+          name="name"
+          id={nameId}
+        />
 
-        {/* メールアドレスフィールド */}
-        <div>
-          <label htmlFor={emailId} className="block text-sm font-medium mb-2">
-            メールアドレス <span className="text-red-500" aria-label="必須">*</span>
-          </label>
-          <Input
-            id={emailId}
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            className={errors.email ? "border-red-500" : ""}
-            aria-required="true"
-            aria-invalid={!!errors.email}
-            aria-describedby={errors.email ? emailErrorId : undefined}
-          />
-          {errors.email && (
-            <p id={emailErrorId} className="mt-1 text-sm text-red-600" role="alert">
-              {errors.email}
-            </p>
-          )}
-        </div>
+        <FormField
+          label="メールアドレス"
+          value={formData.email}
+          onChange={(value) => setFormData({ ...formData, email: value })}
+          error={errors.email}
+          required
+          type="email"
+          name="email"
+          id={emailId}
+        />
 
-        {/* パスワードフィールド */}
         <div>
-          <label htmlFor={passwordId} className="block text-sm font-medium mb-2">
-            パスワード <span className="text-red-500" aria-label="必須">*</span>
-          </label>
-          <Input
-            id={passwordId}
-            name="password"
-            type="password"
+          <FormField
+            label="パスワード"
             value={formData.password}
-            onChange={handleChange}
-            className={errors.password ? "border-red-500" : ""}
-            aria-required="true"
-            aria-invalid={!!errors.password}
-            aria-describedby={errors.password ? passwordErrorId : undefined}
+            onChange={(value) => setFormData({ ...formData, password: value })}
+            error={errors.password}
+            required
+            type="password"
+            name="password"
+            id={passwordId}
           />
-          {errors.password && (
-            <p id={passwordErrorId} className="mt-1 text-sm text-red-600" role="alert">
-              {errors.password}
-            </p>
-          )}
           <p className="mt-1 text-xs text-gray-500">
             8文字以上、英字と数字を含む必要があります
           </p>

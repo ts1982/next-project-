@@ -1,10 +1,11 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import { Users as UsersIcon } from "lucide-react"
-import { UserSearch, UserTable, UserTableSkeleton } from "@/features/users"
+import { UserSearch, UserTable } from "@/features/users"
 import { getUserList } from "@/features/users"
 import { PAGINATION } from "@/lib/constants/pagination"
 import { Button } from "@/components/ui/button"
+import { TableSkeleton } from "@/components/common"
 
 interface PageProps {
   searchParams: Promise<{
@@ -39,7 +40,16 @@ const UsersPage = async ({ searchParams }: PageProps) => {
 
       <UserSearch defaultValue={search} />
 
-      <Suspense fallback={<UserTableSkeleton />}>
+      <Suspense
+        fallback={
+          <TableSkeleton
+            columns={5}
+            headers={["ID", "名前", "メールアドレス", "登録日", "更新日"]}
+            columnWidths={["w-20", "w-32", "w-48", "w-32", "w-32"]}
+            ariaLabel="ユーザー一覧読み込み中"
+          />
+        }
+      >
         <UserTable users={data.users} pagination={data.pagination} />
       </Suspense>
     </div>

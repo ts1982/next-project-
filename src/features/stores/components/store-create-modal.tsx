@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { Store as StoreIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { FormField } from "@/components/common/form-field"
 import {
   Dialog,
   DialogContent,
@@ -105,63 +105,49 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
           <DialogDescription>新しい店舗を登録します</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} aria-label="店舗作成フォーム">
           <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="text-sm font-medium">
-                店舗名 <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="例: 東京本店"
-              />
-              {errors.name && <p className="text-sm text-red-500 mt-1">{errors.name}</p>}
-            </div>
+            <FormField
+              label="店舗名"
+              value={formData.name}
+              onChange={(value) => setFormData({ ...formData, name: value })}
+              error={errors.name}
+              required
+              placeholder="例: 東京本店"
+              name="name"
+            />
+
+            <FormField
+              label="住所"
+              value={formData.address}
+              onChange={(value) => setFormData({ ...formData, address: value })}
+              error={errors.address}
+              required
+              placeholder="例: 東京都渋谷区..."
+              name="address"
+            />
+
+            <FormField
+              label="電話番号"
+              value={formData.phone || ""}
+              onChange={(value) => setFormData({ ...formData, phone: value })}
+              error={errors.phone}
+              placeholder="例: 03-1234-5678"
+              name="phone"
+            />
+
+            <FormField
+              label="メールアドレス"
+              value={formData.email || ""}
+              onChange={(value) => setFormData({ ...formData, email: value })}
+              error={errors.email}
+              type="email"
+              placeholder="例: store@example.com"
+              name="email"
+            />
 
             <div>
-              <label htmlFor="address" className="text-sm font-medium">
-                住所 <span className="text-red-500">*</span>
-              </label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="例: 東京都渋谷区..."
-              />
-              {errors.address && <p className="text-sm text-red-500 mt-1">{errors.address}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="text-sm font-medium">
-                電話番号
-              </label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="例: 03-1234-5678"
-              />
-              {errors.phone && <p className="text-sm text-red-500 mt-1">{errors.phone}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="email" className="text-sm font-medium">
-                メールアドレス
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="例: store@example.com"
-              />
-              {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="description" className="text-sm font-medium">
+              <label htmlFor="description" className="block text-sm font-medium mb-2">
                 説明
               </label>
               <textarea
@@ -170,9 +156,13 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="店舗の説明を入力..."
                 className="w-full min-h-20 px-3 py-2 border rounded-md"
+                aria-invalid={!!errors.description}
+                aria-describedby={errors.description ? "description-error" : undefined}
               />
               {errors.description && (
-                <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+                <p id="description-error" className="text-sm text-red-500 mt-1" role="alert">
+                  {errors.description}
+                </p>
               )}
             </div>
 
@@ -193,7 +183,7 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
                     timezone={timezone}
                   />
                   {errors.publishedAt && (
-                    <p className="text-sm text-red-500 mt-1">{errors.publishedAt}</p>
+                    <p className="text-sm text-red-500 mt-1" role="alert">{errors.publishedAt}</p>
                   )}
                 </div>
 
@@ -206,7 +196,7 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
                     timezone={timezone}
                   />
                   {errors.unpublishedAt && (
-                    <p className="text-sm text-red-500 mt-1">{errors.unpublishedAt}</p>
+                    <p className="text-sm text-red-500 mt-1" role="alert">{errors.unpublishedAt}</p>
                   )}
                 </div>
               </div>
@@ -217,7 +207,7 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
             <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               キャンセル
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
               {isSubmitting ? "作成中..." : "作成"}
             </Button>
           </DialogFooter>

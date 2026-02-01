@@ -2,6 +2,7 @@
 
 import { Store } from "../types/store.types"
 import { useState } from "react"
+import { DataTable, type Column } from "@/components/common/data-table"
 import { StoreDetailModal } from "./store-detail-modal"
 import { PublicationStatusBadge } from "./publication-status-badge"
 
@@ -19,52 +20,50 @@ export function StoreTable({ stores, timezone }: StoreTableProps) {
     setIsModalOpen(true)
   }
 
+  const columns: Column<Store>[] = [
+    {
+      key: "name",
+      header: "店舗名",
+      render: (store) => <span className="font-medium">{store.name}</span>,
+    },
+    {
+      key: "address",
+      header: "住所",
+      render: (store) => store.address,
+    },
+    {
+      key: "phone",
+      header: "電話番号",
+      render: (store) => store.phone || "-",
+    },
+    {
+      key: "publicationStatus",
+      header: "公開状態",
+      render: (store) => (
+        <PublicationStatusBadge
+          publishedAt={store.publishedAt}
+          unpublishedAt={store.unpublishedAt}
+          timezone={timezone}
+        />
+      ),
+    },
+    {
+      key: "createdAt",
+      header: "登録日",
+      render: (store) => new Date(store.createdAt).toLocaleDateString("ja-JP"),
+    },
+  ]
+
   return (
     <>
-      <div className="rounded-md border">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="h-12 px-4 text-left align-middle font-medium">店舗名</th>
-              <th className="h-12 px-4 text-left align-middle font-medium">住所</th>
-              <th className="h-12 px-4 text-left align-middle font-medium">電話番号</th>
-              <th className="h-12 px-4 text-left align-middle font-medium">公開状態</th>
-              <th className="h-12 px-4 text-left align-middle font-medium">登録日</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stores.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="h-24 text-center text-muted-foreground">
-                  店舗が見つかりませんでした
-                </td>
-              </tr>
-            ) : (
-              stores.map((store) => (
-                <tr
-                  key={store.id}
-                  onClick={() => handleRowClick(store)}
-                  className="border-b transition-colors hover:bg-muted/50 cursor-pointer"
-                >
-                  <td className="p-4 align-middle font-medium">{store.name}</td>
-                  <td className="p-4 align-middle">{store.address}</td>
-                  <td className="p-4 align-middle">{store.phone || "-"}</td>
-                  <td className="p-4 align-middle">
-                    <PublicationStatusBadge
-                      publishedAt={store.publishedAt}
-                      unpublishedAt={store.unpublishedAt}
-                      timezone={timezone}
-                    />
-                  </td>
-                  <td className="p-4 align-middle">
-                    {new Date(store.createdAt).toLocaleDateString("ja-JP")}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={stores}
+        columns={columns}
+        getRowKey={(store) => store.id}
+        onRowClick={handleRowClick}
+        emptyMessage="店舗が見つかりませんでした"
+        ariaLabel="店舗一覧テーブル"
+      />
 
       <StoreDetailModal
         store={selectedStore}
