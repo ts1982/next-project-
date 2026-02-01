@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Pencil, Trash2 } from "lucide-react"
+import { formatDateTime } from "@/lib/utils/date-format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -25,9 +26,10 @@ interface UserDetailModalProps {
   user: User | null
   isOpen: boolean
   onClose: () => void
+  timezone: string
 }
 
-export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps) {
+export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailModalProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("detail")
   const [formData, setFormData] = useState<UpdateUserInput>({})
@@ -159,10 +161,10 @@ export function UserDetailModal({ user, isOpen, onClose }: UserDetailModalProps)
 
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground">
-                  作成日: {new Date(user.createdAt).toLocaleString("ja-JP")}
+                  作成日: {formatDateTime(user.createdAt, timezone)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  更新日: {new Date(user.updatedAt).toLocaleString("ja-JP")}
+                  更新日: {formatDateTime(user.updatedAt, timezone)}
                 </p>
               </div>
             </div>

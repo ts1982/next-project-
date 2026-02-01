@@ -17,6 +17,17 @@ import {
 import { DateTimePicker } from "@/components/ui/date-time-picker"
 import { createStoreSchema, type CreateStoreSchema } from "../schemas/store.schema"
 
+type FormErrors = {
+  name?: string
+  description?: string
+  address?: string
+  phone?: string
+  email?: string
+  publishedAt?: string
+  unpublishedAt?: string
+  general?: string
+}
+
 interface StoreCreateModalProps {
   isOpen: boolean
   onClose: () => void
@@ -34,7 +45,7 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
   })
   const [publishedAt, setPublishedAt] = useState<Date | undefined>()
   const [unpublishedAt, setUnpublishedAt] = useState<Date | undefined>()
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -53,10 +64,11 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
     // バリデーション
     const result = createStoreSchema.safeParse(submitData)
     if (!result.success) {
-      const fieldErrors: Record<string, string> = {}
+      const fieldErrors: FormErrors = {}
       result.error.issues.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as string] = err.message
+        const field = err.path[0]?.toString() as keyof FormErrors
+        if (field) {
+          fieldErrors[field] = err.message
         }
       })
       setErrors(fieldErrors)
@@ -71,8 +83,20 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
         body: JSON.stringify(result.data),
       })
 
+      let data: { error?: string } = {}
+      try {
+        data = await response.json()
+      } catch {
+        // JSON parse エラーの場合
+        if (!response.ok) {
+          setErrors({ general: "サーバーエラーが発生しました" })
+          return
+        }
+      }
+
       if (!response.ok) {
-        throw new Error("店舗の作成に失敗しました")
+        setErrors({ general: data.error || "店舗の作成に失敗しました" })
+        return
       }
 
       router.refresh()
@@ -88,14 +112,19 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
       setUnpublishedAt(undefined)
     } catch (error) {
       console.error(error)
-      alert("店舗の作成に失敗しました")
+      setErrors({ general: "店舗の作成に失敗しました" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
       <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -107,6 +136,17 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
 
         <form onSubmit={handleSubmit} aria-label="店舗作成フォーム">
           <div className="space-y-4">
+            {/* 一般エラー - aria-live で通知 */}
+            {errors.general && (
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800"
+              >
+                {errors.general}
+              </div>
+            )}
+
             <FormField
               label="店舗名"
               value={formData.name}

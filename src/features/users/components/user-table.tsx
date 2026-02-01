@@ -1,10 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { format } from "date-fns"
-import { ja } from "date-fns/locale"
+import { formatDateTime } from "@/lib/utils/date-format"
 import { DataTable, type Column } from "@/components/common/data-table"
-import { usePagination } from "@/lib/hooks"
 import { UserDetailModal } from "./user-detail-modal"
 import type { User } from "../types/user.types"
 
@@ -16,10 +14,10 @@ interface UserTableProps {
     limit: number
     totalPages: number
   }
+  timezone: string
 }
 
-export const UserTable = ({ users, pagination }: UserTableProps) => {
-  const { goToPage, isPending } = usePagination()
+export const UserTable = ({ users, timezone }: UserTableProps) => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -48,14 +46,12 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
     {
       key: "createdAt",
       header: "登録日",
-      render: (user) =>
-        format(user.createdAt, "yyyy/MM/dd HH:mm", { locale: ja }),
+      render: (user) => formatDateTime(user.createdAt, timezone),
     },
     {
       key: "updatedAt",
       header: "更新日",
-      render: (user) =>
-        format(user.updatedAt, "yyyy/MM/dd HH:mm", { locale: ja }),
+      render: (user) => formatDateTime(user.updatedAt, timezone),
     },
   ]
 
@@ -67,14 +63,6 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
         getRowKey={(user) => user.id}
         onRowClick={handleRowClick}
         emptyMessage="ユーザーが見つかりませんでした"
-        pagination={{
-          currentPage: pagination.page,
-          totalPages: pagination.totalPages,
-          totalItems: pagination.total,
-          itemsPerPage: pagination.limit,
-          onPageChange: goToPage,
-        }}
-        isLoading={isPending}
         ariaLabel="ユーザー一覧テーブル"
       />
 
@@ -85,6 +73,7 @@ export const UserTable = ({ users, pagination }: UserTableProps) => {
           setIsModalOpen(false)
           setSelectedUser(null)
         }}
+        timezone={timezone}
       />
     </>
   )

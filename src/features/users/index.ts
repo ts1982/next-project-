@@ -1,6 +1,7 @@
 export { UserSearch } from "./components/user-search";
 export { UserTable } from "./components/user-table";
 export { UserCreateForm } from "./components/user-create-form";
+export { UserCreateModal } from "./components/user-create-modal";
 export { UserDetailModal } from "./components/user-detail-modal";
 
 // Services

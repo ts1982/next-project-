@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
 import { Pencil, Trash2 } from "lucide-react"
+import { formatDateTime } from "@/lib/utils/date-format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -236,8 +237,8 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
                 <label className="text-sm font-medium text-muted-foreground">公開期間</label>
                 {store.publishedAt ? (
                   <div className="text-sm mt-1">
-                    <p>開始: {new Date(store.publishedAt).toLocaleString("ja-JP", { timeZone: timezone })} ({timezone})</p>
-                    <p>終了: {store.unpublishedAt ? `${new Date(store.unpublishedAt).toLocaleString("ja-JP", { timeZone: timezone })} (${timezone})` : "無期限"}</p>
+                    <p>開始: {formatDateTime(store.publishedAt, timezone)}</p>
+                    <p>終了: {store.unpublishedAt ? formatDateTime(store.unpublishedAt, timezone) : "無期限"}</p>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground mt-1">未設定</p>
@@ -246,10 +247,10 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
 
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground">
-                  作成日: {new Date(store.createdAt).toLocaleString("ja-JP", { timeZone: timezone })} ({timezone})
+                  作成日: {formatDateTime(store.createdAt, timezone)}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  更新日: {new Date(store.updatedAt).toLocaleString("ja-JP", { timeZone: timezone })} ({timezone})
+                  更新日: {formatDateTime(store.updatedAt, timezone)}
                 </p>
               </div>
             </div>

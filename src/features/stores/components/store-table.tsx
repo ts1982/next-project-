@@ -2,6 +2,7 @@
 
 import { Store } from "../types/store.types"
 import { useState } from "react"
+import { formatDate } from "@/lib/utils/date-format"
 import { DataTable, type Column } from "@/components/common/data-table"
 import { StoreDetailModal } from "./store-detail-modal"
 import { PublicationStatusBadge } from "./publication-status-badge"
@@ -50,7 +51,7 @@ export function StoreTable({ stores, timezone }: StoreTableProps) {
     {
       key: "createdAt",
       header: "登録日",
-      render: (store) => new Date(store.createdAt).toLocaleDateString("ja-JP"),
+      render: (store) => formatDate(store.createdAt, timezone),
     },
   ]
 
