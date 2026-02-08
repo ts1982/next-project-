@@ -46,7 +46,7 @@ export async function getStoreList(search: string = "", page: number = 1) {
   const [stores, total] = await Promise.all([
     prisma.store.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { id: "desc" },
       take: PAGINATION.ITEMS_PER_PAGE,
       skip: offset,
     }),
