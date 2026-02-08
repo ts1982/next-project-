@@ -35,6 +35,10 @@ interface SearchFormProps {
    * @default true
    */
   showClearButton?: boolean;
+  /**
+   * 外部から渡すローディング状態
+   */
+  isPending?: boolean;
 }
 
 /**
@@ -64,9 +68,11 @@ export const SearchForm = ({
   ariaLabel = "検索フォーム",
   maxWidth = "max-w-sm",
   showClearButton = true,
+  isPending: pendingProp,
 }: SearchFormProps) => {
   const [searchText, setSearchText] = useState(defaultValue);
-  const [isPending, startTransition] = useTransition();
+  const [isPendingInternal, startTransition] = useTransition();
+  const isPending = pendingProp ?? isPendingInternal;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

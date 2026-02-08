@@ -8,7 +8,7 @@ interface UserSearchProps {
 }
 
 export const UserSearch = ({ defaultValue = "" }: UserSearchProps) => {
-  const { search, clear } = useUserSearch()
+  const { search, clear, isPending } = useUserSearch()
 
   return (
     <SearchForm
@@ -18,6 +18,7 @@ export const UserSearch = ({ defaultValue = "" }: UserSearchProps) => {
       onClear={clear}
       ariaLabel="ユーザー検索"
       maxWidth="max-w-lg"
+      isPending={isPending}
     />
   )
 }

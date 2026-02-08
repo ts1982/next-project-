@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
     // 検索条件
     const where = search
       ? {
-          OR: [{ name: { contains: search } }, { email: { contains: search } }],
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+          ],
         }
       : {};
 

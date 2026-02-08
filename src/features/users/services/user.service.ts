@@ -26,7 +26,10 @@ export const getUserList = async (
 
   const where = search
     ? {
-        OR: [{ name: { contains: search } }, { email: { contains: search } }],
+        OR: [
+          { name: { contains: search, mode: "insensitive" as const } },
+          { email: { contains: search, mode: "insensitive" as const } },
+        ],
       }
     : {};
 

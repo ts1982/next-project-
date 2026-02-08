@@ -1,13 +1,16 @@
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTransition } from "react";
 
 /**
  * URLクエリパラメータを管理するカスタムフック
  */
-export const useQueryParams = () => {
+export const useQueryParams = (basePath?: string) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+
+  const targetPath = basePath ?? pathname;
 
   const updateParams = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(searchParams);
@@ -21,7 +24,9 @@ export const useQueryParams = () => {
     });
 
     startTransition(() => {
-      router.push(`?${params.toString()}`);
+      const queryString = params.toString();
+      const url = queryString ? `${targetPath}?${queryString}` : targetPath;
+      router.push(url);
     });
   };
 
