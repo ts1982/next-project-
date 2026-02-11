@@ -4,6 +4,7 @@ import { useState } from "react"
 import { formatDateTime } from "@/lib/utils/date-format"
 import { DataTable, type Column } from "@/components/common/data-table"
 import { UserDetailModal } from "./user-detail-modal"
+import { RoleBadge } from "./role-badge"
 import type { User } from "../types/user.types"
 
 interface UserTableProps {
@@ -42,6 +43,12 @@ export const UserTable = ({ users, timezone }: UserTableProps) => {
       key: "email",
       header: "メールアドレス",
       render: (user) => user.email,
+    },
+    {
+      key: "role",
+      header: "ロール",
+      render: (user) => <RoleBadge roleName={user.role.name} />,
+      className: "w-32",
     },
     {
       key: "createdAt",

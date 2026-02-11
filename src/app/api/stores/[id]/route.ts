@@ -8,18 +8,17 @@ import { updateStoreSchema } from "@/features/stores/schemas/store.schema";
 import { successResponse, errorResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
 import { rateLimit, RATE_LIMITS } from "@/lib/middleware/rate-limit";
+import { getClientIp } from "@/lib/utils/request";
+import {
+  requirePermission,
+  UnauthorizedError,
+  ForbiddenError,
+} from "@/lib/auth/guards";
 
 // Rate limiters
 const getRateLimit = rateLimit(RATE_LIMITS.GET);
 const updateRateLimit = rateLimit(RATE_LIMITS.POST);
 const deleteRateLimit = rateLimit(RATE_LIMITS.STRICT);
-
-// クライアントIPを取得する関数
-function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  return forwarded?.split(",")[0] || realIp || "unknown";
-}
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -29,6 +28,9 @@ export async function GET(request: NextRequest, { params }: Params) {
   const clientIp = getClientIp(request);
 
   try {
+    // 店舗閲覧権限チェック
+    await requirePermission("stores", "read");
+
     // Rate limiting
     const allowed = await getRateLimit(clientIp);
     if (!allowed) {
@@ -64,6 +66,18 @@ export async function GET(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(successResponse(store));
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
+        { status: 401 },
+      );
+    }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
+        { status: 403 },
+      );
+    }
     logger.error("Failed to fetch store", { error, clientIp });
     return NextResponse.json(errorResponse("店舗の取得に失敗しました"), {
       status: 500,
@@ -75,6 +89,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const clientIp = getClientIp(request);
 
   try {
+    // 店舗更新権限チェック
+    await requirePermission("stores", "update");
+
     // Rate limiting
     const allowed = await updateRateLimit(clientIp);
     if (!allowed) {
@@ -123,6 +140,18 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(successResponse(store, "店舗を更新しました"));
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
+        { status: 401 },
+      );
+    }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
+        { status: 403 },
+      );
+    }
     logger.error("Failed to update store", { error, clientIp });
     return NextResponse.json(errorResponse("店舗の更新に失敗しました"), {
       status: 500,
@@ -134,6 +163,9 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   const clientIp = getClientIp(request);
 
   try {
+    // 店舗削除権限チェック
+    await requirePermission("stores", "delete");
+
     // Rate limiting
     const allowed = await deleteRateLimit(clientIp);
     if (!allowed) {
@@ -166,6 +198,18 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       successResponse({ id: storeId }, "店舗を削除しました"),
     );
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
+        { status: 401 },
+      );
+    }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
+        { status: 403 },
+      );
+    }
     logger.error("Failed to delete store", { error, clientIp });
     return NextResponse.json(errorResponse("店舗の削除に失敗しました"), {
       status: 500,

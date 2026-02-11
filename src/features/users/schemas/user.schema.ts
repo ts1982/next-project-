@@ -3,6 +3,9 @@ import { z } from "zod";
 // パスワードの正規表現: 8文字以上、英字と数字を含む
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
 
+// ロールID のバリデーション（DB上のRole.id）
+const roleIdSchema = z.string().min(1, "ロールを選択してください");
+
 // ユーザー作成用のzodスキーマ
 export const createUserSchema = z.object({
   email: z
@@ -21,11 +24,12 @@ export const createUserSchema = z.object({
     .min(1, { message: "名前を入力してください" })
     .max(100, { message: "名前は100文字以内で入力してください" })
     .trim(),
+  roleId: roleIdSchema,
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 
-// ユーザー更新用のスキーマ（将来的に使用）
+// ユーザー更新用のスキーマ
 export const updateUserSchema = z
   .object({
     email: z
@@ -47,6 +51,7 @@ export const updateUserSchema = z
         message: "パスワードは英字と数字を含む必要があります",
       })
       .optional(),
+    roleId: z.string().min(1, "ロールを選択してください").optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "少なくとも1項目は入力してください",

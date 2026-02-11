@@ -1,7 +1,15 @@
+/** ユーザーに紐づくロール情報 */
+export interface UserRole {
+  id: string;
+  name: string;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
+  roleId: string;
+  role: UserRole;
   timezone: string | null;
   emailVerified: Date | null;
   createdAt: Date;

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, PermissionScope } from "@prisma/client";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcryptjs";
 
@@ -18,28 +18,107 @@ const TIMEZONES = [
   "Europe/Berlin",
 ];
 
+// ---------------------------------------------------------------------------
+// パーミッション定義（12 個: 3 resources × 4 actions）
+// ---------------------------------------------------------------------------
+const PERMISSION_DEFS = [
+  { resource: "users", action: "read", description: "ユーザー閲覧" },
+  { resource: "users", action: "create", description: "ユーザー作成" },
+  { resource: "users", action: "update", description: "ユーザー更新" },
+  { resource: "users", action: "delete", description: "ユーザー削除" },
+  { resource: "stores", action: "read", description: "店舗閲覧" },
+  { resource: "stores", action: "create", description: "店舗作成" },
+  { resource: "stores", action: "update", description: "店舗更新" },
+  { resource: "stores", action: "delete", description: "店舗削除" },
+  { resource: "roles", action: "read", description: "ロール閲覧" },
+  { resource: "roles", action: "create", description: "ロール作成" },
+  { resource: "roles", action: "update", description: "ロール更新" },
+  { resource: "roles", action: "delete", description: "ロール削除" },
+];
+
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // 既存のデータを削除
+  // 既存のデータを削除（依存順序に注意）
   await prisma.store.deleteMany();
+  await prisma.rolePermission.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.permission.deleteMany();
+  await prisma.role.deleteMany();
   console.log("🗑️  Cleared existing data");
 
-  // 管理者ユーザーを作成
+  // ── パーミッションマスタ ──
+  const permissionRecords = await Promise.all(
+    PERMISSION_DEFS.map((def) =>
+      prisma.permission.create({
+        data: def,
+      }),
+    ),
+  );
+  console.log(`✅ Created ${permissionRecords.length} permissions`);
+
+  // パーミッション検索用マップ: "resource:action" → id
+  const permMap = new Map<string, string>();
+  for (const p of permissionRecords) {
+    permMap.set(`${p.resource}:${p.action}`, p.id);
+  }
+
+  // ── ロール ──
+  const adminRole = await prisma.role.create({
+    data: {
+      name: "ADMIN",
+      description: "管理者 — 全リソースに対する全権限",
+    },
+  });
+
+  const userRole = await prisma.role.create({
+    data: {
+      name: "USER",
+      description: "一般ユーザー — 限定的な権限",
+    },
+  });
+  console.log("✅ Created roles: ADMIN, USER");
+
+  // ── ADMIN のパーミッション: 全 12 権限 (scope: ALL) ──
+  await prisma.rolePermission.createMany({
+    data: permissionRecords.map((p) => ({
+      roleId: adminRole.id,
+      permissionId: p.id,
+      scope: PermissionScope.ALL,
+    })),
+  });
+
+  // ── USER のパーミッション ──
+  const userPermissions: { permissionKey: string; scope: PermissionScope }[] = [
+    { permissionKey: "stores:read", scope: PermissionScope.ALL },
+    { permissionKey: "users:read", scope: PermissionScope.OWN },
+    { permissionKey: "users:update", scope: PermissionScope.OWN },
+  ];
+
+  await prisma.rolePermission.createMany({
+    data: userPermissions.map((up) => ({
+      roleId: userRole.id,
+      permissionId: permMap.get(up.permissionKey)!,
+      scope: up.scope,
+    })),
+  });
+  console.log("✅ Assigned permissions to roles");
+
+  // ── 管理者ユーザー ──
   const adminPassword = await bcrypt.hash("admin123", 10);
   await prisma.user.create({
     data: {
       email: "admin@example.com",
       name: "Admin User",
       password: adminPassword,
-      timezone: "Asia/Hong_Kong", // DEFAULT_TIMEZONE
-      emailVerified: new Date(), // メール認証済み扱い
+      roleId: adminRole.id,
+      timezone: "Asia/Hong_Kong",
+      emailVerified: new Date(),
     },
   });
-  console.log("✅ Created admin user (admin@example.com / admin123)");
+  console.log("✅ Created admin user (admin@example.com / admin123) [ADMIN]");
 
-  // ユーザーデータを生成（タイムゾーン付き）
+  // ── 一般ユーザー 50 名 ──
   const users = [];
   const defaultPassword = await bcrypt.hash("password", 10);
   for (let i = 0; i < 50; i++) {
@@ -47,8 +126,9 @@ async function main() {
       email: faker.internet.email().toLowerCase(),
       name: faker.person.fullName(),
       password: defaultPassword,
+      roleId: userRole.id,
       timezone: TIMEZONES[Math.floor(Math.random() * TIMEZONES.length)],
-      emailVerified: Math.random() > 0.5 ? new Date() : null, // 50%の確率で認証済み
+      emailVerified: Math.random() > 0.5 ? new Date() : null,
     });
   }
 
@@ -193,16 +273,27 @@ async function main() {
   // 作成されたデータのサンプルを表示
   const sampleUsers = await prisma.user.findMany({
     take: 3,
+    include: { role: true },
   });
 
   const sampleStores = await prisma.store.findMany({
     take: 5,
   });
 
+  const roleCount = await prisma.role.count();
+  const permCount = await prisma.permission.count();
+  const rpCount = await prisma.rolePermission.count();
+
   console.log("\n📊 Sample data:");
+  console.log(
+    `\n🔐 RBAC: ${roleCount} roles, ${permCount} permissions, ${rpCount} role-permissions`,
+  );
+
   console.log("\n👥 Users:");
   sampleUsers.forEach((user) => {
-    console.log(`  - ${user.name} (${user.email}) [${user.timezone}]`);
+    console.log(
+      `  - ${user.name} (${user.email}) [${user.role.name}] [${user.timezone}]`,
+    );
   });
 
   console.log("\n🏪 Stores:");

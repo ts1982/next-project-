@@ -8,6 +8,7 @@ import { Pagination } from "@/components/common/pagination"
 import { StoreTable } from "@/features/stores/components/store-table"
 import { StoreSearch } from "@/features/stores/components/store-search"
 import { StoreCreateModal } from "@/features/stores/components/store-create-modal"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { Store } from "@/features/stores"
 
 interface StoresClientPageProps {
@@ -31,6 +32,9 @@ export function StoresClientPage({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const { can } = usePermissions()
+
+  const canCreate = can("stores", "create")
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -46,10 +50,12 @@ export function StoresClientPage({
             <StoreIcon className="h-8 w-8" />
             <h1 className="text-3xl font-bold tracking-tight">店舗管理</h1>
           </div>
-          <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            新規登録
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              新規登録
+            </Button>
+          )}
         </div>
         <p className="text-muted-foreground mt-1">登録店舗の一覧を表示・管理できます</p>
       </div>
@@ -70,11 +76,13 @@ export function StoresClientPage({
         )}
       </div>
 
-      <StoreCreateModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        timezone={timezone}
-      />
+      {canCreate && (
+        <StoreCreateModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          timezone={timezone}
+        />
+      )}
     </div>
   )
 }

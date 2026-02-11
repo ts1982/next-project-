@@ -13,17 +13,78 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ---------------------------------------------------------------------------
+// RBAC: Role-Based Access Control
+// ---------------------------------------------------------------------------
+
+/// パーミッションのスコープ
+///   ALL — リソース全体に対する操作権限
+///   OWN — 自己所有リソースに限定した操作権限
+enum PermissionScope {
+  ALL
+  OWN
+}
+
+/// ロール（管理者、一般ユーザーなど）
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.VarChar(50) // e.g. "ADMIN", "USER", "MANAGER"
+  description String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+/// パーミッション定義（リソース × アクション）
+model Permission {
+  id          String   @id @default(cuid())
+  resource    String   @db.VarChar(50) // e.g. "users", "stores", "roles"
+  action      String   @db.VarChar(50) // e.g. "read", "create", "update", "delete"
+  description String?  @db.VarChar(200)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+/// ロールとパーミッションの中間テーブル（scope 付き）
+model RolePermission {
+  id           String          @id @default(cuid())
+  roleId       String
+  permissionId String
+  scope        PermissionScope @default(ALL) // ALL: 全リソース, OWN: 自己リソースのみ
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ---------------------------------------------------------------------------
+// User & Auth
+// ---------------------------------------------------------------------------
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   emailVerified DateTime?
   name          String
   password      String
+  roleId        String
   image         String?
   timezone      String?   @db.VarChar(100) // IANA timezone (e.g., Asia/Tokyo, America/New_York)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  role     Role      @relation(fields: [roleId], references: [id])
   accounts Account[]
   sessions Session[]
 
@@ -72,6 +133,10 @@ model VerificationToken {
   @@id([identifier, token])
   @@map("verification_tokens")
 }
+
+// ---------------------------------------------------------------------------
+// Business Domain
+// ---------------------------------------------------------------------------
 
 model Store {
   id            Int       @id @default(autoincrement())

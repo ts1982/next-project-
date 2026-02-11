@@ -2,25 +2,43 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Settings, Users, BarChart, X, Store } from "lucide-react"
+import { Home, Settings, Users, BarChart, X, Store, Shield, type LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { usePermissions } from "@/lib/hooks/use-permissions"
+import type { Resource, Action } from "@/lib/auth/permissions"
 
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
 }
 
-const menuItems = [
+interface MenuItem {
+  icon: LucideIcon
+  label: string
+  href: string
+  /** このメニューを表示するために必要なパーミッション（省略時は常に表示） */
+  permission?: { resource: Resource; action: Action }
+}
+
+const menuItems: MenuItem[] = [
   { icon: Home, label: "ダッシュボード", href: "/dashboard" },
-  { icon: Users, label: "ユーザー管理", href: "/users" },
-  { icon: Store, label: "店舗管理", href: "/stores" },
+  { icon: Users, label: "ユーザー管理", href: "/users", permission: { resource: "users", action: "read" } },
+  { icon: Store, label: "店舗管理", href: "/stores", permission: { resource: "stores", action: "read" } },
+  { icon: Shield, label: "ロール管理", href: "/roles", permission: { resource: "roles", action: "read" } },
   { icon: BarChart, label: "分析", href: "/dashboard/analytics" },
   { icon: Settings, label: "設定", href: "/dashboard/settings" },
 ]
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const pathname = usePathname()
+  const { can } = usePermissions()
+
+  // パーミッションでメニューをフィルタ
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (!item.permission) return true
+    return can(item.permission.resource, item.permission.action)
+  })
 
   return (
     <>
@@ -57,7 +75,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </div>
 
         <nav className="space-y-2 p-4">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (

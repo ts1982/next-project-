@@ -8,6 +8,7 @@ import { Pagination } from "@/components/common/pagination"
 import { UserTable } from "@/features/users/components/user-table"
 import { UserSearch } from "@/features/users/components/user-search"
 import { UserCreateModal } from "@/features/users/components/user-create-modal"
+import { usePermissions } from "@/lib/hooks/use-permissions"
 import type { User } from "@/features/users"
 
 interface UsersClientPageProps {
@@ -31,6 +32,9 @@ export function UsersClientPage({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const { can } = usePermissions()
+
+  const canCreate = can("users", "create")
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -46,10 +50,12 @@ export function UsersClientPage({
             <UsersIcon className="h-8 w-8" />
             <h1 className="text-3xl font-bold tracking-tight">ユーザー管理</h1>
           </div>
-          <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            新規登録
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setIsCreateModalOpen(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              新規登録
+            </Button>
+          )}
         </div>
         <p className="text-muted-foreground mt-1">登録ユーザーの一覧を表示・管理できます</p>
       </div>
@@ -70,10 +76,12 @@ export function UsersClientPage({
         )}
       </div>
 
-      <UserCreateModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-      />
+      {canCreate && (
+        <UserCreateModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

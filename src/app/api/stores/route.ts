@@ -7,22 +7,24 @@ import { createStoreSchema } from "@/features/stores/schemas/store.schema";
 import { successResponse, errorResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
 import { rateLimit, RATE_LIMITS } from "@/lib/middleware/rate-limit";
+import { getClientIp } from "@/lib/utils/request";
+import {
+  requirePermission,
+  UnauthorizedError,
+  ForbiddenError,
+} from "@/lib/auth/guards";
 
 // Rate limiters
 const getRateLimit = rateLimit(RATE_LIMITS.GET);
 const postRateLimit = rateLimit(RATE_LIMITS.POST);
 
-// クライアントIPを取得する関数
-function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  return forwarded?.split(",")[0] || realIp || "unknown";
-}
-
 export async function GET(request: NextRequest) {
   const clientIp = getClientIp(request);
 
   try {
+    // 店舗閲覧権限チェック
+    await requirePermission("stores", "read");
+
     // Rate limiting
     const allowed = await getRateLimit(clientIp);
     if (!allowed) {
@@ -52,6 +54,18 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(successResponse(data));
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
+        { status: 401 },
+      );
+    }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
+        { status: 403 },
+      );
+    }
     logger.error("Failed to fetch stores", { error, clientIp });
     return NextResponse.json(errorResponse("店舗の取得に失敗しました"), {
       status: 500,
@@ -63,6 +77,9 @@ export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
 
   try {
+    // 店舗作成権限チェック
+    await requirePermission("stores", "create");
+
     // Rate limiting
     const allowed = await postRateLimit(clientIp);
     if (!allowed) {
@@ -102,6 +119,18 @@ export async function POST(request: NextRequest) {
       status: 201,
     });
   } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      return NextResponse.json(
+        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
+        { status: 401 },
+      );
+    }
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json(
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
+        { status: 403 },
+      );
+    }
     logger.error("Failed to create store", { error, clientIp });
     return NextResponse.json(errorResponse("店舗の作成に失敗しました"), {
       status: 500,

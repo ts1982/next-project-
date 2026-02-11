@@ -17,6 +17,19 @@ import {
 import bcrypt from "bcryptjs";
 import { env } from "@/lib/config/env";
 
+/** パスワードを除外した共通 select フィールド */
+const USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  roleId: true,
+  role: { select: { id: true, name: true } },
+  timezone: true,
+  emailVerified: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 export const getUserList = async (
   search: string,
   page: number,
@@ -40,6 +53,7 @@ export const getUserList = async (
       skip,
       take: limit,
       orderBy: { createdAt: "desc" },
+      select: USER_SELECT,
     }),
   ]);
 
@@ -69,17 +83,10 @@ export const createUser = async (
       email: validated.email,
       name: validated.name,
       password: hashedPassword,
+      roleId: validated.roleId,
       timezone: env.DEFAULT_TIMEZONE,
     },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      timezone: true,
-      emailVerified: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: USER_SELECT,
   });
 
   return {
@@ -115,6 +122,7 @@ export const updateUser = async (
     name: string;
     email: string;
     password: string;
+    roleId: string;
     timezone: string;
   }> = {};
   if (validated.name) data.name = validated.name;
@@ -122,20 +130,13 @@ export const updateUser = async (
   if (validated.password) {
     data.password = await bcrypt.hash(validated.password, 10);
   }
+  if (validated.roleId) data.roleId = validated.roleId;
   if (validatedTimezone !== undefined) data.timezone = validatedTimezone;
 
   const user = await prisma.user.update({
     where: { id },
     data,
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      timezone: true,
-      emailVerified: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: USER_SELECT,
   });
 
   return {

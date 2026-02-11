@@ -9,6 +9,51 @@ const loginSchema = z.object({
   password: z.string().min(8, "パスワードは8文字以上である必要があります"),
 });
 
+/**
+ * ユーザーIDからロール + パーミッション文字列配列を取得する
+ * "resource:action:scope" 形式（scope は lowercase）
+ */
+async function getUserPermissions(userId: string) {
+  const { prisma } = await import("./src/lib/db/prisma");
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      role: {
+        select: {
+          id: true,
+          name: true,
+          rolePermissions: {
+            select: {
+              scope: true,
+              permission: {
+                select: {
+                  resource: true,
+                  action: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user?.role)
+    return { roleId: "", roleName: "", permissions: [] as string[] };
+
+  const permissions = user.role.rolePermissions.map(
+    (rp) =>
+      `${rp.permission.resource}:${rp.permission.action}:${rp.scope.toLowerCase()}`,
+  );
+
+  return {
+    roleId: user.role.id,
+    roleName: user.role.name,
+    permissions,
+  };
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -53,15 +98,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
         }
 
+        // ロール + パーミッション文字列を取得
+        const { roleId, roleName, permissions } = await getUserPermissions(
+          user.id,
+        );
+
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           image: user.image,
           emailVerified: user.emailVerified,
+          roleId,
+          roleName,
+          permissions,
           timezone: user.timezone || env.DEFAULT_TIMEZONE,
         };
       },
     }),
   ],
 });
+
+// エクスポート: refresh-permissions API から呼べるように
+export { getUserPermissions };

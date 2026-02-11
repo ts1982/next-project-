@@ -6,15 +6,15 @@ import { prisma } from "@/lib/db/prisma";
 import { errorResponse, successResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
 import { rateLimit, RATE_LIMITS } from "@/lib/middleware/rate-limit";
-import { requireUser, UnauthorizedError } from "@/lib/auth/guards";
+import { getClientIp } from "@/lib/utils/request";
+import {
+  requirePermission,
+  UnauthorizedError,
+  ForbiddenError,
+} from "@/lib/auth/guards";
 
 const patchRateLimit = rateLimit(RATE_LIMITS.POST);
-
-function getClientIp(request: NextRequest): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  return forwarded?.split(",")[0] || realIp || "unknown";
-}
+const deleteRateLimit = rateLimit(RATE_LIMITS.STRICT);
 
 export async function PATCH(
   request: NextRequest,
@@ -24,8 +24,8 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    // 認証チェック（管理者として認証されているか確認）
-    await requireUser();
+    // ユーザー更新権限チェック（scope: "own" なら自己リソースのみ）
+    await requirePermission("users", "update", id);
 
     const allowed = await patchRateLimit(clientIp);
     if (!allowed) {
@@ -56,6 +56,13 @@ export async function PATCH(
       return NextResponse.json(
         errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
         { status: 401 },
+      );
+    }
+    if (error instanceof ForbiddenError) {
+      logger.warn("Forbidden access", { id, clientIp });
+      return NextResponse.json(
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
+        { status: 403 },
       );
     }
     if (error instanceof ZodError) {
@@ -108,8 +115,21 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    // 認証チェック（管理者として認証されているか確認）
-    await requireUser();
+    // ユーザー削除権限チェック
+    await requirePermission("users", "delete", id);
+
+    const allowed = await deleteRateLimit(clientIp);
+    if (!allowed) {
+      logger.warn("Rate limit exceeded", { clientIp, method: "DELETE" });
+      return NextResponse.json(
+        errorResponse(
+          "レート制限を超えました。しばらく待ってから再試行してください。",
+          undefined,
+          "RATE_LIMIT_EXCEEDED",
+        ),
+        { status: 429 },
+      );
+    }
 
     logger.info("Deleting user", { id, clientIp });
 
@@ -127,6 +147,13 @@ export async function DELETE(
       return NextResponse.json(
         errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
         { status: 401 },
+      );
+    }
+    if (error instanceof ForbiddenError) {
+      logger.warn("Forbidden access", { id, clientIp });
+      return NextResponse.json(
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
+        { status: 403 },
       );
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
