@@ -45,15 +45,15 @@ lint:
 	npm run lint
 
 # Database (Docker)
-db-up:
+up:
 	docker-compose up -d
 	@echo "✅ PostgreSQL container started"
 
-db-down:
+down:
 	docker-compose down
 	@echo "✅ PostgreSQL container stopped"
 
-db-restart:
+restart:
 	docker-compose restart
 	@echo "✅ PostgreSQL container restarted"
 

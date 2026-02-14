@@ -1,4 +1,8 @@
-import { PrismaClient, PermissionScope } from "@prisma/client";
+import {
+  PrismaClient,
+  PermissionScope,
+  NotificationType,
+} from "@prisma/client";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcryptjs";
 
@@ -40,6 +44,7 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // 既存のデータを削除（依存順序に注意）
+  await prisma.notification.deleteMany();
   await prisma.store.deleteMany();
   await prisma.rolePermission.deleteMany();
   await prisma.user.deleteMany();
@@ -106,7 +111,7 @@ async function main() {
 
   // ── 管理者ユーザー ──
   const adminPassword = await bcrypt.hash("admin123", 10);
-  await prisma.user.create({
+  const adminUser = await prisma.user.create({
     data: {
       email: "admin@example.com",
       name: "Admin User",
@@ -270,6 +275,112 @@ async function main() {
 
   console.log(`✅ Created ${stores.length} stores with publication dates`);
 
+  // ── 通知データ（admin ユーザーに 200 件） ──
+  const NOTIFICATION_TEMPLATES = [
+    {
+      title: "システムメンテナンスのお知らせ",
+      body: "定期メンテナンスを実施します。メンテナンス中はサービスをご利用いただけません。",
+      type: NotificationType.SYSTEM,
+    },
+    {
+      title: "新機能リリースのお知らせ",
+      body: "新しいダッシュボード機能をリリースしました。詳しくはヘルプをご覧ください。",
+      type: NotificationType.INFO,
+    },
+    {
+      title: "セキュリティアラート",
+      body: "不審なログイン試行が検出されました。パスワードの変更を推奨します。",
+      type: NotificationType.WARNING,
+    },
+    {
+      title: "期間限定キャンペーン",
+      body: "今月末まで特別割引キャンペーンを実施中です！",
+      type: NotificationType.PROMOTION,
+    },
+    {
+      title: "パスワード変更完了",
+      body: "パスワードが正常に変更されました。",
+      type: NotificationType.SYSTEM,
+    },
+    {
+      title: "アカウント情報の更新",
+      body: "プロフィール情報が更新されました。",
+      type: NotificationType.INFO,
+    },
+    {
+      title: "ストレージ容量の警告",
+      body: "ストレージ使用量が90%を超えました。不要なデータを削除してください。",
+      type: NotificationType.WARNING,
+    },
+    {
+      title: "新店舗オープン記念セール",
+      body: "新店舗のオープンを記念して全品10%OFFセールを開催中！",
+      type: NotificationType.PROMOTION,
+    },
+    {
+      title: "利用規約の更新",
+      body: "利用規約が更新されました。内容をご確認ください。",
+      type: NotificationType.SYSTEM,
+    },
+    {
+      title: "週次レポート",
+      body: "今週のアクティビティレポートが利用可能です。",
+      type: NotificationType.INFO,
+    },
+    {
+      title: "APIレート制限の警告",
+      body: "APIリクエストがレート制限に近づいています。",
+      type: NotificationType.WARNING,
+    },
+    {
+      title: "ポイント2倍キャンペーン",
+      body: "本日限定でポイント2倍キャンペーンを実施中です！",
+      type: NotificationType.PROMOTION,
+    },
+    {
+      title: "バックアップ完了通知",
+      body: "データベースの自動バックアップが正常に完了しました。",
+      type: NotificationType.SYSTEM,
+    },
+    {
+      title: "新しいコメントがあります",
+      body: "あなたの投稿に新しいコメントが追加されました。",
+      type: NotificationType.INFO,
+    },
+    {
+      title: "SSL証明書の有効期限警告",
+      body: "SSL証明書の有効期限が30日以内に切れます。更新してください。",
+      type: NotificationType.WARNING,
+    },
+    {
+      title: "会員限定クーポン配布",
+      body: "会員限定の特別クーポンをお届けします。マイページからご確認ください。",
+      type: NotificationType.PROMOTION,
+    },
+  ];
+
+  const notifications = [];
+  const ninetyDaysMs = 1000 * 60 * 60 * 24 * 90;
+  for (let i = 0; i < 200; i++) {
+    const template = NOTIFICATION_TEMPLATES[i % NOTIFICATION_TEMPLATES.length];
+    const createdAt = new Date(now.getTime() - Math.random() * ninetyDaysMs);
+    notifications.push({
+      userId: adminUser.id,
+      title: `${template.title} #${i + 1}`,
+      body: template.body,
+      type: template.type,
+      isRead: Math.random() < 0.3, // 30% 既読
+      createdAt,
+    });
+  }
+
+  await prisma.notification.createMany({
+    data: notifications,
+  });
+  console.log(
+    `✅ Created ${notifications.length} notifications for admin user`,
+  );
+
   // 作成されたデータのサンプルを表示
   const sampleUsers = await prisma.user.findMany({
     take: 3,
@@ -283,11 +394,13 @@ async function main() {
   const roleCount = await prisma.role.count();
   const permCount = await prisma.permission.count();
   const rpCount = await prisma.rolePermission.count();
+  const notifCount = await prisma.notification.count();
 
   console.log("\n📊 Sample data:");
   console.log(
     `\n🔐 RBAC: ${roleCount} roles, ${permCount} permissions, ${rpCount} role-permissions`,
   );
+  console.log(`🔔 Notifications: ${notifCount}`);
 
   console.log("\n👥 Users:");
   sampleUsers.forEach((user) => {

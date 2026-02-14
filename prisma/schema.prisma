@@ -84,9 +84,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  role     Role      @relation(fields: [roleId], references: [id])
-  accounts Account[]
-  sessions Session[]
+  role          Role           @relation(fields: [roleId], references: [id])
+  accounts      Account[]
+  sessions      Session[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -132,6 +133,36 @@ model VerificationToken {
 
   @@id([identifier, token])
   @@map("verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+/// 通知種別
+enum NotificationType {
+  SYSTEM // システム通知
+  INFO // お知らせ
+  WARNING // 警告
+  PROMOTION // キャンペーン
+}
+
+/// 通知
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  title       String           @db.VarChar(200)
+  body        String
+  type        NotificationType @default(INFO)
+  isRead      Boolean          @default(false)
+  scheduledAt DateTime? // 予約通知日時（将来用）
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
 }
 
 // ---------------------------------------------------------------------------

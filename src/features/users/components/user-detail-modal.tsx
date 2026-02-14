@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Pencil, Trash2 } from "lucide-react"
+import { Pencil, Trash2, Bell } from "lucide-react"
 import { formatDateTime } from "@/lib/utils/date-format"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { RoleBadge } from "./role-badge"
 import { RoleSelect } from "./role-select"
+import { NotificationListModal } from "@/features/notifications/components/notification-list-modal"
 import type { User } from "../types/user.types"
 
 interface UpdateUserInput {
@@ -38,6 +39,7 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
   const [formData, setFormData] = useState<UpdateUserInput>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false)
 
   // userが変わったら編集フォームを初期化
   useEffect(() => {
@@ -129,6 +131,7 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
   }
 
   return (
+    <>
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
@@ -182,6 +185,14 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsNotificationModalOpen(true)}
+                className="gap-2"
+              >
+                <Bell className="h-4 w-4" />
+                通知一覧
+              </Button>
               <Button
                 variant="destructive"
                 onClick={handleDelete}
@@ -273,5 +284,14 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
         </Tabs>
       </DialogContent>
     </Dialog>
+
+      {/* 通知一覧モーダル */}
+      <NotificationListModal
+        userId={user.id}
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+        timezone={timezone}
+      />
+    </>
   )
 }
