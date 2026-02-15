@@ -26,9 +26,8 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // eslint (react-hooks/set-state-in-effect) 対策: effect内で同期的にsetStateせず、
-    // マイクロタスクに逃がして初回レンダーの安定性を優先する。
-    Promise.resolve().then(() => setMounted(true))
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration mismatch回避の定番パターン
+    setMounted(true)
   }, [])
 
   const handleLogout = async () => {

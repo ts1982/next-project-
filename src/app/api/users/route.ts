@@ -1,46 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { createUserSchema } from "@/features/users/schemas/user.schema";
 import { createUser } from "@/features/users/services/user.service";
-import { ZodError } from "zod";
-import { Prisma } from "@prisma/client";
-import { successResponse, errorResponse } from "@/lib/types/api.types";
+import { successResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
-import { rateLimit, RATE_LIMITS } from "@/lib/middleware/rate-limit";
-import { getClientIp } from "@/lib/utils/request";
-import {
-  requirePermission,
-  UnauthorizedError,
-  ForbiddenError,
-} from "@/lib/auth/guards";
+import { RATE_LIMITS } from "@/lib/middleware/rate-limit";
+import { requirePermission } from "@/lib/auth/guards";
+import { withApiHandler } from "@/lib/middleware/api-handler";
 
-// Rate limiters
-const getRateLimit = rateLimit(RATE_LIMITS.GET);
-const postRateLimit = rateLimit(RATE_LIMITS.POST);
-
-export async function GET(request: NextRequest) {
-  const clientIp = getClientIp(request);
-
-  try {
-    // パーミッションチェック（scope: "own" なら自分のデータのみ）
+export const GET = withApiHandler(
+  async (request, { clientIp }) => {
     const { user: currentUser, scope } = await requirePermission(
       "users",
       "read",
     );
-
-    // Rate limiting
-    const allowed = await getRateLimit(clientIp);
-    if (!allowed) {
-      logger.warn("Rate limit exceeded", { clientIp, method: "GET" });
-      return NextResponse.json(
-        errorResponse(
-          "レート制限を超えました。しばらく待ってから再試行してください。",
-          undefined,
-          "RATE_LIMIT_EXCEEDED",
-        ),
-        { status: 429 },
-      );
-    }
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
@@ -50,7 +23,6 @@ export async function GET(request: NextRequest) {
 
     logger.info("Fetching users", { search, page, limit, clientIp });
 
-    // 検索条件（scope: "own" なら自分自身のみ）
     const searchWhere = search
       ? {
           OR: [
@@ -63,7 +35,6 @@ export async function GET(request: NextRequest) {
     const where =
       scope === "own" ? { ...searchWhere, id: currentUser.id } : searchWhere;
 
-    // 総数とデータを並行取得（パスワードを除外）
     const [total, users] = await Promise.all([
       prisma.user.count({ where }),
       prisma.user.findMany({
@@ -97,55 +68,18 @@ export async function GET(request: NextRequest) {
 
     logger.info("Users fetched successfully", { count: users.length, total });
     return NextResponse.json(successResponse(response));
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
-        { status: 401 },
-      );
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
-        { status: 403 },
-      );
-    }
-    logger.error("Failed to fetch users", { error, clientIp });
-    return NextResponse.json(errorResponse("ユーザーの取得に失敗しました"), {
-      status: 500,
-    });
-  }
-}
+  },
+  { rateLimit: RATE_LIMITS.GET, operationName: "ユーザーの取得" },
+);
 
-export async function POST(request: NextRequest) {
-  const clientIp = getClientIp(request);
-
-  try {
-    // ユーザー作成権限チェック
+export const POST = withApiHandler(
+  async (request, { clientIp }) => {
     await requirePermission("users", "create");
 
-    // Rate limiting
-    const allowed = await postRateLimit(clientIp);
-    if (!allowed) {
-      logger.warn("Rate limit exceeded", { clientIp, method: "POST" });
-      return NextResponse.json(
-        errorResponse(
-          "レート制限を超えました。しばらく待ってから再試行してください。",
-          undefined,
-          "RATE_LIMIT_EXCEEDED",
-        ),
-        { status: 429 },
-      );
-    }
-
     const body = await request.json();
-
     logger.info("Creating user", { email: body.email, clientIp });
 
-    // zodでバリデーション
     const validatedData = createUserSchema.parse(body);
-
-    // ユーザー作成
     const result = await createUser(validatedData);
 
     logger.info("User created successfully", { user: result });
@@ -153,54 +87,6 @@ export async function POST(request: NextRequest) {
       successResponse(result, "ユーザーが正常に作成されました"),
       { status: 201 },
     );
-  } catch (error) {
-    // 認証・権限エラー
-    if (error instanceof UnauthorizedError) {
-      return NextResponse.json(
-        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
-        { status: 401 },
-      );
-    }
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
-        { status: 403 },
-      );
-    }
-
-    // zodバリデーションエラー
-    if (error instanceof ZodError) {
-      const fieldErrors: Record<string, string> = {};
-      error.issues.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0].toString()] = err.message;
-        }
-      });
-      logger.warn("Validation error", { fieldErrors, clientIp });
-      return NextResponse.json(
-        errorResponse("バリデーションエラー", fieldErrors, "VALIDATION_ERROR"),
-        { status: 400 },
-      );
-    }
-
-    // 重複エラー（メールアドレス）
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      if (error.code === "P2002") {
-        logger.warn("Duplicate email", { clientIp });
-        return NextResponse.json(
-          errorResponse(
-            "このメールアドレスは既に使用されています",
-            undefined,
-            "DUPLICATE_EMAIL",
-          ),
-          { status: 409 },
-        );
-      }
-    }
-
-    logger.error("Failed to create user", { error, clientIp });
-    return NextResponse.json(errorResponse("ユーザーの作成に失敗しました"), {
-      status: 500,
-    });
-  }
-}
+  },
+  { rateLimit: RATE_LIMITS.POST, operationName: "ユーザーの作成" },
+);

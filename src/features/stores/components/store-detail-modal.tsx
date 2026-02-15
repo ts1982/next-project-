@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DateTimePicker } from "@/components/ui/date-time-picker"
 import { PublicationStatusBadge } from "./publication-status-badge"
@@ -35,12 +36,12 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
   const [publishedAt, setPublishedAt] = useState<Date | undefined>()
   const [unpublishedAt, setUnpublishedAt] = useState<Date | undefined>()
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [generalError, setGeneralError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
-  // storeが変わったら編集フォームを初期化
-  useEffect(() => {
+  const initializeEditForm = useCallback(() => {
     if (!store) return;
-
     setFormData({
       name: store.name,
       description: store.description || "",
@@ -48,40 +49,20 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
       phone: store.phone || "",
       email: store.email || "",
     });
-
-    // UTC日時をユーザーのタイムゾーンに変換
-    // DateTimePickerはブラウザのローカルタイムゾーンで動作するため、
-    // toZonedTimeでUTC→指定タイムゾーンの変換を行う
     setPublishedAt(
       store.publishedAt ? toZonedTime(store.publishedAt, timezone) : undefined
     );
     setUnpublishedAt(
       store.unpublishedAt ? toZonedTime(store.unpublishedAt, timezone) : undefined
     );
+    setErrors({});
   }, [store, timezone])
 
+  useEffect(() => {
+    initializeEditForm();
+  }, [initializeEditForm])
+
   if (!store) return null
-
-  // 編集フォームの初期化
-  const initializeEditForm = () => {
-    setFormData({
-      name: store.name,
-      description: store.description || "",
-      address: store.address,
-      phone: store.phone || "",
-      email: store.email || "",
-    });
-
-    // UTC日時をユーザーのタイムゾーンに変換
-    setPublishedAt(
-      store.publishedAt ? toZonedTime(store.publishedAt, timezone) : undefined
-    );
-    setUnpublishedAt(
-      store.unpublishedAt ? toZonedTime(store.unpublishedAt, timezone) : undefined
-    );
-
-    setErrors({});
-  }
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,6 +90,7 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
     }
 
     setIsSubmitting(true)
+    setGeneralError(null)
     try {
       const response = await fetch(`/api/stores/${store.id}`, {
         method: "PATCH",
@@ -117,51 +99,57 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
       })
 
       if (!response.ok) {
-        throw new Error("更新に失敗しました")
+        const data = await response.json().catch(() => ({}))
+        if (data.fields) {
+          setErrors(data.fields)
+        } else {
+          setGeneralError(data.error || "更新に失敗しました")
+        }
+        return
       }
 
       router.refresh()
       onClose()
       setActiveTab("detail")
-    } catch (error) {
-      console.error(error)
-      alert("更新に失敗しました")
+    } catch {
+      setGeneralError("更新に失敗しました")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleDelete = async () => {
-    if (!confirm(`「${store.name}」を削除してもよろしいですか？`)) {
-      return
-    }
-
     setIsSubmitting(true)
+    setGeneralError(null)
     try {
       const response = await fetch(`/api/stores/${store.id}`, {
         method: "DELETE",
       })
 
       if (!response.ok) {
-        throw new Error("削除に失敗しました")
+        const data = await response.json().catch(() => ({}))
+        setGeneralError(data.error || "削除に失敗しました")
+        return
       }
 
       router.refresh()
       onClose()
-    } catch (error) {
-      console.error(error)
-      alert("削除に失敗しました")
+    } catch {
+      setGeneralError("削除に失敗しました")
     } finally {
       setIsSubmitting(false)
+      setIsDeleteDialogOpen(false)
     }
   }
 
   return (
+    <>
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
           setActiveTab("detail")
+          setGeneralError(null)
           onClose()
         }
       }}
@@ -171,6 +159,15 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
           <DialogTitle>{store.name}</DialogTitle>
           <DialogDescription>店舗の詳細情報</DialogDescription>
         </DialogHeader>
+
+        {generalError && (
+          <div
+            role="alert"
+            className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800"
+          >
+            {generalError}
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
@@ -258,7 +255,7 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 variant="destructive"
-                onClick={handleDelete}
+                onClick={() => setIsDeleteDialogOpen(true)}
                 disabled={isSubmitting}
                 className="gap-2"
               >
@@ -392,5 +389,17 @@ export function StoreDetailModal({ store, isOpen, onClose, timezone }: StoreDeta
         </Tabs>
       </DialogContent>
     </Dialog>
+
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="削除の確認"
+        description={`「${store.name}」を削除してもよろしいですか？この操作は取り消せません。`}
+        confirmLabel="削除"
+        variant="destructive"
+        onConfirm={handleDelete}
+        isLoading={isSubmitting}
+      />
+    </>
   )
 }

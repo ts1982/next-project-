@@ -37,7 +37,8 @@ const SettingsPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error("タイムゾーンの更新に失敗しました");
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "タイムゾーンの更新に失敗しました");
       }
 
       // セッションを更新（新しいタイムゾーンを渡す）
@@ -56,7 +57,8 @@ const SettingsPage = () => {
       }, 100);
     } catch (error) {
       console.error("Error updating timezone:", error);
-      setMessage({ type: "error", text: "タイムゾーンの更新に失敗しました" });
+      const errorMessage = error instanceof Error ? error.message : "タイムゾーンの更新に失敗しました";
+      setMessage({ type: "error", text: errorMessage });
     } finally {
       setIsLoading(false);
     }

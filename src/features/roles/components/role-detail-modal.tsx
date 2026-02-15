@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { PermissionGrid, type PermissionSelection } from "./permission-grid"
 import type { RoleWithPermissions, PermissionDefinition } from "../types/role.types"
 
@@ -36,16 +37,9 @@ export function RoleDetailModal({
   const [editPermissions, setEditPermissions] = useState<PermissionSelection[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
-  // role 変更時にフォーム初期化
-  useEffect(() => {
-    if (!role) return
-    initializeEditForm()
-  }, [role])
-
-  if (!role) return null
-
-  function initializeEditForm() {
+  const initializeEditForm = useCallback(() => {
     if (!role) return
     setEditName(role.name)
     setEditDescription(role.description || "")
@@ -56,7 +50,13 @@ export function RoleDetailModal({
       })),
     )
     setErrors({})
-  }
+  }, [role])
+
+  useEffect(() => {
+    initializeEditForm()
+  }, [initializeEditForm])
+
+  if (!role) return null
 
   // permissionId → DB上の Permission を検索するマップ
   const permissionMap = new Map<string, PermissionDefinition>()
@@ -103,9 +103,8 @@ export function RoleDetailModal({
   }
 
   const handleDelete = async () => {
-    if (!confirm(`ロール「${role.name}」を削除してもよろしいですか？`)) return
-
     setIsSubmitting(true)
+    setErrors({})
     try {
       const response = await fetch(`/api/roles/${role.id}`, {
         method: "DELETE",
@@ -113,20 +112,22 @@ export function RoleDetailModal({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        alert(data.error || "削除に失敗しました")
+        setErrors({ general: data.error || "削除に失敗しました" })
         return
       }
 
       router.refresh()
       onClose()
     } catch {
-      alert("削除に失敗しました")
+      setErrors({ general: "削除に失敗しました" })
     } finally {
       setIsSubmitting(false)
+      setIsDeleteDialogOpen(false)
     }
   }
 
   return (
+    <>
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
@@ -191,7 +192,7 @@ export function RoleDetailModal({
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 variant="destructive"
-                onClick={handleDelete}
+                onClick={() => setIsDeleteDialogOpen(true)}
                 disabled={isSubmitting}
                 className="gap-2"
               >
@@ -279,5 +280,17 @@ export function RoleDetailModal({
         </Tabs>
       </DialogContent>
     </Dialog>
+
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="削除の確認"
+        description={`ロール「${role.name}」を削除してもよろしいですか？この操作は取り消せません。`}
+        confirmLabel="削除"
+        variant="destructive"
+        onConfirm={handleDelete}
+        isLoading={isSubmitting}
+      />
+    </>
   )
 }

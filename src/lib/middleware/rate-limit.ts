@@ -1,4 +1,4 @@
-type RateLimitConfig = {
+export type RateLimitConfig = {
   windowMs: number;
   maxRequests: number;
 };

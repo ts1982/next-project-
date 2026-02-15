@@ -1,51 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getNotificationsByUserId } from "@/features/notifications/services/notification.service";
 import { successResponse, errorResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
-import { rateLimit, RATE_LIMITS } from "@/lib/middleware/rate-limit";
-import { getClientIp } from "@/lib/utils/request";
-import {
-  requirePermission,
-  UnauthorizedError,
-  ForbiddenError,
-} from "@/lib/auth/guards";
+import { RATE_LIMITS } from "@/lib/middleware/rate-limit";
+import { requirePermission } from "@/lib/auth/guards";
+import { withApiHandler } from "@/lib/middleware/api-handler";
 
-const getRateLimit = rateLimit(RATE_LIMITS.GET);
+export const GET = withApiHandler(
+  async (request, { clientIp, params }) => {
+    const { id: userId } = params;
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const clientIp = getClientIp(request);
-  const { id: userId } = await params;
-
-  try {
-    // ユーザー閲覧権限チェック（scope: "own" なら自分の通知のみ）
     const { user: currentUser, scope } = await requirePermission(
       "users",
       "read",
       userId,
     );
 
-    // scope が "own" の場合、自分以外の通知は取得不可
     if (scope === "own" && currentUser.id !== userId) {
       return NextResponse.json(
-        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
-        { status: 403 },
-      );
-    }
-
-    // Rate limiting
-    const allowed = await getRateLimit(clientIp);
-    if (!allowed) {
-      logger.warn("Rate limit exceeded", { clientIp, method: "GET" });
-      return NextResponse.json(
         errorResponse(
-          "レート制限を超えました。しばらく待ってから再試行してください。",
+          "この操作を行う権限がありません",
           undefined,
-          "RATE_LIMIT_EXCEEDED",
+          "FORBIDDEN",
         ),
-        { status: 429 },
+        { status: 403 },
       );
     }
 
@@ -67,25 +45,6 @@ export async function GET(
     });
 
     return NextResponse.json(successResponse(result));
-  } catch (error) {
-    if (error instanceof UnauthorizedError) {
-      logger.warn("Unauthorized access", { userId, clientIp });
-      return NextResponse.json(
-        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
-        { status: 401 },
-      );
-    }
-    if (error instanceof ForbiddenError) {
-      logger.warn("Forbidden access", { userId, clientIp });
-      return NextResponse.json(
-        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
-        { status: 403 },
-      );
-    }
-
-    logger.error("Failed to fetch notifications", { error, userId, clientIp });
-    return NextResponse.json(errorResponse("通知の取得に失敗しました"), {
-      status: 500,
-    });
-  }
-}
+  },
+  { rateLimit: RATE_LIMITS.GET, operationName: "通知の取得" },
+);

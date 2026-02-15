@@ -14,17 +14,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ConfirmDialog } from "@/components/common/confirm-dialog"
 import { RoleBadge } from "./role-badge"
 import { RoleSelect } from "./role-select"
 import { NotificationListModal } from "@/features/notifications/components/notification-list-modal"
+import { updateUserSchema, type UpdateUserInput } from "../schemas/user.schema"
 import type { User } from "../types/user.types"
-
-interface UpdateUserInput {
-  name?: string
-  email?: string
-  password?: string
-  roleId?: string
-}
 
 interface UserDetailModalProps {
   user: User | null
@@ -36,10 +31,12 @@ interface UserDetailModalProps {
 export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailModalProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("detail")
-  const [formData, setFormData] = useState<UpdateUserInput>({})
+  const [formData, setFormData] = useState<Partial<UpdateUserInput>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [generalError, setGeneralError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   // userが変わったら編集フォームを初期化
   useEffect(() => {
@@ -58,75 +55,75 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
+    setGeneralError(null)
 
-    // 簡易バリデーション
-    const fieldErrors: Record<string, string> = {}
-    if (formData.name && formData.name.length < 1) {
-      fieldErrors.name = "名前は必須です"
-    }
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      fieldErrors.email = "有効なメールアドレスを入力してください"
-    }
-    if (formData.password && formData.password.length > 0 && formData.password.length < 4) {
-      fieldErrors.password = "パスワードは4文字以上で入力してください"
-    }
+    const updateData: Record<string, string> = {}
+    if (formData.name) updateData.name = formData.name
+    if (formData.email) updateData.email = formData.email
+    if (formData.password) updateData.password = formData.password
+    if (formData.roleId && formData.roleId !== user.roleId) updateData.roleId = formData.roleId
 
-    if (Object.keys(fieldErrors).length > 0) {
+    const result = updateUserSchema.safeParse(updateData)
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.issues.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0].toString()] = err.message
+        }
+      })
       setErrors(fieldErrors)
       return
     }
 
     setIsSubmitting(true)
     try {
-      const updateData: UpdateUserInput = {}
-      if (formData.name) updateData.name = formData.name
-      if (formData.email) updateData.email = formData.email
-      if (formData.password) updateData.password = formData.password
-      if (formData.roleId && formData.roleId !== user.roleId) updateData.roleId = formData.roleId
-
       const response = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
+        body: JSON.stringify(result.data),
       })
 
       if (!response.ok) {
-        throw new Error("更新に失敗しました")
+        const data = await response.json().catch(() => ({}))
+        if (data.fields) {
+          setErrors(data.fields)
+        } else {
+          setGeneralError(data.error || "更新に失敗しました")
+        }
+        return
       }
 
       router.refresh()
       onClose()
       setActiveTab("detail")
-    } catch (error) {
-      console.error(error)
-      alert("更新に失敗しました")
+    } catch {
+      setGeneralError("更新に失敗しました")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleDelete = async () => {
-    if (!confirm(`「${user.name}」を削除してもよろしいですか？`)) {
-      return
-    }
-
     setIsSubmitting(true)
+    setGeneralError(null)
     try {
       const response = await fetch(`/api/users/${user.id}`, {
         method: "DELETE",
       })
 
       if (!response.ok) {
-        throw new Error("削除に失敗しました")
+        const data = await response.json().catch(() => ({}))
+        setGeneralError(data.error || "削除に失敗しました")
+        return
       }
 
       router.refresh()
       onClose()
-    } catch (error) {
-      console.error(error)
-      alert("削除に失敗しました")
+    } catch {
+      setGeneralError("削除に失敗しました")
     } finally {
       setIsSubmitting(false)
+      setIsDeleteDialogOpen(false)
     }
   }
 
@@ -137,6 +134,7 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
       onOpenChange={(open) => {
         if (!open) {
           setActiveTab("detail")
+          setGeneralError(null)
           onClose()
         }
       }}
@@ -146,6 +144,15 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
           <DialogTitle>{user.name}</DialogTitle>
           <DialogDescription>ユーザーの詳細情報</DialogDescription>
         </DialogHeader>
+
+        {generalError && (
+          <div
+            role="alert"
+            className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800"
+          >
+            {generalError}
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
@@ -195,7 +202,7 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
               </Button>
               <Button
                 variant="destructive"
-                onClick={handleDelete}
+                onClick={() => setIsDeleteDialogOpen(true)}
                 disabled={isSubmitting}
                 className="gap-2"
               >
@@ -248,7 +255,7 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
                   type="password"
                   value={formData.password || ""}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="4文字以上"
+                  placeholder="8文字以上（英字と数字を含む）"
                 />
                 {errors.password && (
                   <p className="text-sm text-red-500 mt-1">{errors.password}</p>
@@ -284,6 +291,17 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
         </Tabs>
       </DialogContent>
     </Dialog>
+
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="削除の確認"
+        description={`「${user.name}」を削除してもよろしいですか？この操作は取り消せません。`}
+        confirmLabel="削除"
+        variant="destructive"
+        onConfirm={handleDelete}
+        isLoading={isSubmitting}
+      />
 
       {/* 通知一覧モーダル */}
       <NotificationListModal
