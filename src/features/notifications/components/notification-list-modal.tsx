@@ -84,6 +84,17 @@ export function NotificationListModal({
         );
 
         if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error("認証が必要です。再度ログインしてください。");
+          }
+          if (response.status === 403) {
+            throw new Error("この通知を閲覧する権限がありません。");
+          }
+          if (response.status === 429) {
+            throw new Error(
+              "リクエストが多すぎます。しばらく待ってから再試行してください。",
+            );
+          }
           throw new Error("通知の取得に失敗しました");
         }
 
@@ -98,8 +109,9 @@ export function NotificationListModal({
         setNextCursor(data.pagination.nextCursor);
         setHasMore(data.pagination.hasMore);
       } catch (err) {
-        console.error(err);
-        setError("通知の取得に失敗しました");
+        const message =
+          err instanceof Error ? err.message : "通知の取得に失敗しました";
+        setError(message);
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
