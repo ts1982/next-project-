@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Bell, CheckCheck } from "lucide-react";
 import type { Notification } from "@/features/notifications/types/notification.types";
 
@@ -35,7 +34,6 @@ export function NotificationsClientPage({
   initialPagination,
   initialUnreadCount,
 }: NotificationsClientPageProps) {
-  const router = useRouter();
   const [notifications, setNotifications] =
     useState<Notification[]>(initialNotifications);
   const [pagination, setPagination] = useState(initialPagination);

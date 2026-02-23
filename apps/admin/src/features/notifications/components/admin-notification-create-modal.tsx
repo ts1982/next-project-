@@ -263,9 +263,6 @@ export function AdminNotificationCreateModal({
                   timezone={timezone}
                 />
               </FormField>
-              <p className="text-xs text-muted-foreground">
-                タイムゾーン: {timezone}
-              </p>
             </>
           )}
 
