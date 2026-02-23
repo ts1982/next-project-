@@ -2,56 +2,21 @@
   "name": "next-project",
   "version": "0.1.0",
   "private": true,
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "db:seed": "tsx prisma/seed.ts",
-    "repl": "tsx scripts/repl.ts"
-  },
-  "dependencies": {
-    "@auth/prisma-adapter": "^2.11.1",
-    "@prisma/client": "^6.19.0",
-    "@radix-ui/react-alert-dialog": "^1.1.15",
-    "@radix-ui/react-avatar": "^1.1.11",
-    "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-navigation-menu": "^1.2.14",
-    "@radix-ui/react-popover": "^1.1.15",
-    "@radix-ui/react-slot": "^1.2.4",
-    "@radix-ui/react-tabs": "^1.1.13",
-    "@types/bcryptjs": "^2.4.6",
-    "bcryptjs": "^3.0.3",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "date-fns": "^4.1.0",
-    "date-fns-tz": "^3.2.0",
-    "lucide-react": "^0.554.0",
-    "next": "^16.0.10",
-    "next-auth": "^5.0.0-beta.30",
-    "prisma": "^6.19.0",
-    "react": "19.2.0",
-    "react-day-picker": "^9.13.0",
-    "react-dom": "19.2.0",
-    "tailwind-merge": "^3.4.0",
-    "tailwindcss-animate": "^1.0.7",
-    "zod": "^4.1.13"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "db:generate": "cd packages/database && npx prisma generate",
+    "db:migrate": "cd packages/database && npx prisma migrate dev",
+    "db:seed": "cd packages/database && npx prisma db seed",
+    "db:studio": "cd packages/database && npx prisma studio"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.1.0",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "baseline-browser-mapping": "^2.9.7",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.3",
-    "tailwindcss": "^4",
-    "tsx": "^4.20.6",
+    "turbo": "^2.5.0",
     "typescript": "^5"
   }
 }
