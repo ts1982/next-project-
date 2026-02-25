@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import type { Notification } from "@/features/notifications/types/notification.types";
+import { useWebSocket } from "@/lib/hooks/use-websocket";
 
 type NotificationType = Notification["type"];
 
@@ -40,6 +41,50 @@ export function NotificationsClientPage({
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
+
+  const handleNewNotification = useCallback(
+    async (wsNotification: { id: string; title: string; body: string; type: string } | undefined) => {
+      if (!wsNotification) return;
+      // API から最新1件を取得して正確なデータを表示
+      try {
+        const res = await fetch("/api/notifications?limit=1");
+        if (!res.ok) return;
+        const data = await res.json();
+        const latest = data.data?.notifications?.[0] as Notification | undefined;
+        if (!latest) return;
+
+        setNotifications((prev) => {
+          // 重複チェック
+          if (prev.some((n) => n.id === latest.id)) return prev;
+          return [latest, ...prev];
+        });
+        setUnreadCount((prev) => prev + 1);
+      } catch {
+        // フォールバック: WebSocket のデータをそのまま使用
+        setNotifications((prev) => {
+          if (prev.some((n) => n.adminNotificationId === wsNotification.id)) return prev;
+          const fallback: Notification = {
+            id: crypto.randomUUID(),
+            userId: "",
+            adminNotificationId: wsNotification.id,
+            title: wsNotification.title,
+            body: wsNotification.body,
+            type: wsNotification.type as Notification["type"],
+            isRead: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          return [fallback, ...prev];
+        });
+        setUnreadCount((prev) => prev + 1);
+      }
+    },
+    [],
+  );
+
+  const { status: wsStatus } = useWebSocket({
+    onNotification: handleNewNotification,
+  });
 
   const handleMarkAsRead = useCallback(async (id: string) => {
     const res = await fetch(`/api/notifications/${id}`, { method: "PATCH" });
@@ -106,6 +151,22 @@ export function NotificationsClientPage({
               {unreadCount}
             </span>
           )}
+          <span
+            className={`inline-block w-2 h-2 rounded-full ${
+              wsStatus === "connected"
+                ? "bg-green-500"
+                : wsStatus === "connecting"
+                  ? "bg-yellow-500"
+                  : "bg-gray-300"
+            }`}
+            title={
+              wsStatus === "connected"
+                ? "リアルタイム接続中"
+                : wsStatus === "connecting"
+                  ? "接続中..."
+                  : "未接続"
+            }
+          />
         </div>
         {unreadCount > 0 && (
           <button

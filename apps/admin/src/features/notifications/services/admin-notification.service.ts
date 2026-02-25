@@ -222,6 +222,31 @@ export async function deliverDueNotifications(): Promise<DeliverNotificationsRes
 }
 
 /**
+ * User App にリアルタイム通知をブロードキャストする
+ */
+async function broadcastToUserApp(
+  userIds: string[],
+  notification: { id: string; title: string; body: string; type: string },
+): Promise<void> {
+  const userAppUrl =
+    process.env.USER_APP_URL || "http://localhost:3001";
+  const secret = process.env.INTERNAL_API_SECRET || "dev-secret";
+
+  const res = await fetch(`${userAppUrl}/api/internal/broadcast`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${secret}`,
+    },
+    body: JSON.stringify({ userIds, notification }),
+  });
+
+  if (!res.ok) {
+    console.error(`[broadcast] Failed: ${res.status} ${res.statusText}`);
+  }
+}
+
+/**
  * 単一 AdminNotification を配信する（transaction）
  */
 async function deliverNotification(adminNotificationId: string): Promise<void> {
@@ -238,6 +263,8 @@ async function deliverNotification(adminNotificationId: string): Promise<void> {
   });
 
   if (!notification || notification.targetType === undefined) return;
+
+  let deliveredUserIds: string[] = [];
 
   await prisma.$transaction(async (tx) => {
     let userIds: string[] = [];
@@ -265,5 +292,19 @@ async function deliverNotification(adminNotificationId: string): Promise<void> {
       where: { id: adminNotificationId },
       data: { deliveredAt: new Date() },
     });
+
+    deliveredUserIds = userIds;
   });
+
+  // トランザクション完了後にリアルタイム通知（失敗しても配信は成功扱い）
+  if (deliveredUserIds.length > 0) {
+    broadcastToUserApp(deliveredUserIds, {
+      id: notification.id,
+      title: notification.title,
+      body: notification.body,
+      type: notification.type,
+    }).catch((err) => {
+      console.error("[broadcast] Error:", err);
+    });
+  }
 }
