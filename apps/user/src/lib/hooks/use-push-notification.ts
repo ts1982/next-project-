@@ -133,11 +133,19 @@ export function usePushNotification(): UsePushNotificationReturn {
 
       if (subscription) {
         // サーバーから削除
-        await fetch("/api/push-subscription", {
+        const res = await fetch("/api/push-subscription", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: subscription.endpoint }),
         });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => null);
+          console.error("[push] Unsubscribe server response:", res.status, errorData);
+          throw new Error(
+            errorData?.error ?? `Failed to unregister push subscription (${res.status})`,
+          );
+        }
 
         await subscription.unsubscribe();
       }

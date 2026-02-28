@@ -6,10 +6,7 @@ function getVapidConfig(): {
   subject: string;
 } {
   return {
-    publicKey:
-      process.env.VAPID_PUBLIC_KEY ||
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      "",
+    publicKey: process.env.VAPID_PUBLIC_KEY || "",
     privateKey: process.env.VAPID_PRIVATE_KEY || "",
     subject: process.env.VAPID_SUBJECT || "mailto:admin@example.com",
   };
@@ -37,6 +34,11 @@ export interface PushTarget {
   auth: string;
 }
 
+interface PushSendResult {
+  endpoint: string;
+  expired: boolean;
+}
+
 /**
  * 指定したサブスクリプションに Web Push を送信する
  * 失敗時は endpoint を返す（サブスクリプション削除用）
@@ -44,7 +46,7 @@ export interface PushTarget {
 export async function sendPushNotification(
   target: PushTarget,
   payload: PushPayload,
-): Promise<{ success: boolean; endpoint: string }> {
+): Promise<PushSendResult> {
   try {
     await webpush.sendNotification(
       {
@@ -54,16 +56,15 @@ export async function sendPushNotification(
       JSON.stringify(payload),
       { TTL: 60 * 60 }, // 1時間
     );
-    return { success: true, endpoint: target.endpoint };
+    return { endpoint: target.endpoint, expired: false };
   } catch (error) {
     const statusCode =
       error instanceof webpush.WebPushError ? error.statusCode : 0;
-    // 410 Gone or 404 Not Found = サブスクリプション無効
-    if (statusCode === 410 || statusCode === 404) {
-      return { success: false, endpoint: target.endpoint };
+    const isExpired = statusCode === 410 || statusCode === 404;
+    if (!isExpired) {
+      console.error("[web-push] Send failed:", error);
     }
-    console.error("[web-push] Send failed:", error);
-    return { success: false, endpoint: target.endpoint };
+    return { endpoint: target.endpoint, expired: isExpired };
   }
 }
 
@@ -86,7 +87,7 @@ export async function sendPushNotifications(
 
   const expiredEndpoints: string[] = [];
   for (const result of results) {
-    if (result.status === "fulfilled" && !result.value.success) {
+    if (result.status === "fulfilled" && result.value.expired) {
       expiredEndpoints.push(result.value.endpoint);
     }
   }

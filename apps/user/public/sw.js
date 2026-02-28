@@ -15,7 +15,7 @@ sw.addEventListener("push", (event) => {
     body: data.body,
     icon: "/icon-192x192.png",
     badge: "/icon-192x192.png",
-    tag: `notification-${Date.now()}`,
+    tag: "new-notification",
     data: { url: data.url || "/notifications" },
   };
 
