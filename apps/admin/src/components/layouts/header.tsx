@@ -37,71 +37,71 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const userInitial = session?.user?.name?.charAt(0).toUpperCase() || "U"
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
+    <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
+      <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden hover:bg-accent"
             onClick={onMenuClick}
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-lg">N</span>
-            </div>
-            <span className="font-semibold text-xl hidden sm:inline-block">Next App</span>
+          <div className="hidden lg:flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">管理コンソール</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Search className="h-5 w-5" />
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 rounded-lg hover:bg-accent">
+            <Search className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Bell className="h-5 w-5" />
+          <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 rounded-lg hover:bg-accent relative">
+            <Bell className="h-4 w-4 text-muted-foreground" />
           </Button>
+          <div className="mx-2 hidden sm:block h-6 w-px bg-border" />
           {mounted ? (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-transparent hover:ring-primary/20 transition-all">
+                  <Avatar className="h-9 w-9">
                     <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || "User"} />
-                    <AvatarFallback>{userInitial}</AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">{userInitial}</AvatarFallback>
                   </Avatar>
                 </Button>
               </SheetTrigger>
               <SheetContent>
                 <SheetHeader>
-                  <SheetTitle>ユーザーメニュー</SheetTitle>
-                  <SheetDescription>
-                    {session?.user?.name && (
-                      <span className="block mt-2 text-sm">
-                        ログイン中: {session.user.name}
-                      </span>
-                    )}
-                    {session?.user?.email && (
-                      <span className="block text-xs text-muted-foreground">
-                        {session.user.email}
-                      </span>
-                    )}
+                  <SheetTitle className="text-lg">ユーザーメニュー</SheetTitle>
+                  <SheetDescription asChild>
+                    <div className="mt-1 rounded-lg bg-muted/50 p-3">
+                      {session?.user?.name && (
+                        <span className="block text-sm font-medium text-foreground">
+                          {session.user.name}
+                        </span>
+                      )}
+                      {session?.user?.email && (
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          {session.user.email}
+                        </span>
+                      )}
+                    </div>
                   </SheetDescription>
                 </SheetHeader>
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-2">
                   <Link href="/dashboard/settings">
-                    <Button variant="outline" className="w-full justify-start">
-                      <User className="mr-2 h-4 w-4" />
+                    <Button variant="ghost" className="w-full justify-start rounded-lg hover:bg-accent">
+                      <User className="mr-3 h-4 w-4 text-muted-foreground" />
                       設定
                     </Button>
                   </Link>
                   <Button
-                    variant="outline"
-                    className="w-full justify-start"
+                    variant="ghost"
+                    className="w-full justify-start rounded-lg text-destructive hover:bg-destructive/10 hover:text-destructive"
                     onClick={handleLogout}
                   >
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-3 h-4 w-4" />
                     ログアウト
                   </Button>
                 </div>
@@ -110,12 +110,12 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           ) : (
             <Button
               variant="ghost"
-              className="relative h-10 w-10 rounded-full"
+              className="relative h-9 w-9 rounded-full"
               aria-label="ユーザーメニュー"
               disabled
             >
-              <Avatar>
-                <AvatarFallback>U</AvatarFallback>
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-muted text-muted-foreground text-sm">U</AvatarFallback>
               </Avatar>
             </Button>
           )}

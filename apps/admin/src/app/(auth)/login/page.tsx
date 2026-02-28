@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,13 +48,25 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl">ログイン</CardTitle>
-          <CardDescription>
-            アカウントにログインしてください
-          </CardDescription>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-background to-accent/10" />
+      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-chart-5/10 blur-3xl" />
+
+      <Card className="relative z-10 w-full max-w-md border-0 shadow-xl shadow-primary/5 backdrop-blur-sm">
+        <CardHeader className="space-y-3 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-primary to-primary/70 shadow-md shadow-primary/25">
+              <span className="text-lg font-bold text-white">N</span>
+            </div>
+            <div>
+              <CardTitle className="text-xl font-bold">ログイン</CardTitle>
+              <CardDescription className="text-sm">
+                管理コンソールにアクセス
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -69,6 +82,7 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                className="h-11"
               />
             </div>
             <div className="space-y-2">
@@ -83,22 +97,33 @@ function LoginForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                className="h-11"
               />
             </div>
             {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
               </div>
             )}
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-11 font-medium shadow-md shadow-primary/20 cursor-pointer"
               disabled={isLoading}
             >
-              {isLoading ? "ログイン中..." : "ログイン"}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ログイン中...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  ログイン
+                </span>
+              )}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm text-gray-600">
+          <div className="mt-6 rounded-lg bg-muted/50 p-3 text-center text-xs text-muted-foreground">
             <p>テストアカウント: admin@example.com / admin123</p>
           </div>
         </CardContent>
@@ -110,8 +135,11 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">読み込み中...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          読み込み中...
+        </div>
       </div>
     }>
       <LoginForm />
