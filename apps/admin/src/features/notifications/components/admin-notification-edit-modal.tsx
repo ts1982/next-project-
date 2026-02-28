@@ -2,9 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { CheckIcon, SearchIcon, UsersIcon, UserIcon, XIcon } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { FormField } from "@/components/common/form-field"
 import { DateTimePicker } from "@/components/ui/date-time-picker"
 import { updateAdminNotificationSchema } from "../schemas/admin-notification.schema"
@@ -144,10 +153,23 @@ export function AdminNotificationEditModal({
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>通知を編集</DialogTitle>
+          <DialogDescription>
+            通知の内容を編集します。
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
+              e.preventDefault()
+            }
+          }}
+          className="space-y-5"
+        >
           {errors.form && (
-            <p className="text-sm text-destructive">{errors.form}</p>
+            <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {errors.form}
+            </div>
           )}
 
           <FormField label="タイトル" error={errors.title} required>
@@ -159,26 +181,130 @@ export function AdminNotificationEditModal({
           </FormField>
 
           <FormField label="本文" error={errors.body} required>
-            <textarea
+            <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder="通知本文を入力"
               rows={4}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             />
           </FormField>
 
           <FormField label="種別" error={errors.type} required>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               {NOTIFICATION_TYPES.map((t) => (
+                <Button
+                  key={t.value}
+                  type="button"
+                  variant={type === t.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setType(t.value)}
+                  className="flex-1"
+                >
+                  {t.label}
+                </Button>
+              ))}
+            </div>
+          </FormField>
+
+          <FormField label="配信対象" error={errors.targetType} required>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { value: "ALL", label: "全ユーザー", icon: UsersIcon },
+                  { value: "SPECIFIC", label: "特定ユーザー", icon: UserIcon },
+                ] as const
+              ).map((t) => (
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => setType(t.value)}
-                  className={`px-3 py-1 rounded-md text-sm border transition-colors ${
-                    type === t.value
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-input hover:bg-accent"
+                  onClick={() => setTargetType(t.value)}
+                  className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors ${
+                    targetType === t.value
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-input hover:border-primary/50 hover:bg-accent"
+                  }`}
+                >
+                  <t.icon className="h-4 w-4" />
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </FormField>
+
+          {targetType === "SPECIFIC" && (
+            <FormField label="ユーザー選択" error={errors.targetUserIds}>
+              <div className="relative">
+                <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={userSearch}
+                  onChange={(e) => handleUserSearch(e.target.value)}
+                  placeholder="名前またはメールで検索"
+                  className="pl-9"
+                />
+              </div>
+              {searchResults.length > 0 && (
+                <div className="mt-2 border rounded-lg max-h-36 overflow-y-auto divide-y">
+                  {searchResults.map((user) => {
+                    const isSelected = selectedUsers.some((u) => u.id === user.id)
+                    return (
+                      <div
+                        key={user.id}
+                        onClick={() => toggleUser(user)}
+                        className={`flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-primary/5 text-primary"
+                            : "hover:bg-accent"
+                        }`}
+                      >
+                        <span>
+                          {user.name}{" "}
+                          <span className="text-muted-foreground">({user.email})</span>
+                        </span>
+                        {isSelected && <CheckIcon className="h-4 w-4" />}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {selectedUsers.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {selectedUsers.map((user) => (
+                    <Badge
+                      key={user.id}
+                      variant="secondary"
+                      className="gap-1 pr-1"
+                    >
+                      {user.name}
+                      <button
+                        type="button"
+                        onClick={() => toggleUser(user)}
+                        className="rounded-full p-0.5 hover:bg-muted-foreground/20 transition-colors"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </FormField>
+          )}
+
+          <FormField label="配信タイミング">
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { label: "即時配信", scheduled: false },
+                  { label: "予約配信", scheduled: true },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.label}
+                  type="button"
+                  onClick={() => setIsScheduled(t.scheduled)}
+                  className={`rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isScheduled === t.scheduled
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-input hover:border-primary/50 hover:bg-accent"
                   }`}
                 >
                   {t.label}
@@ -187,96 +313,17 @@ export function AdminNotificationEditModal({
             </div>
           </FormField>
 
-          <FormField label="配信対象" error={errors.targetType} required>
-            <div className="flex gap-4">
-              {(["ALL", "SPECIFIC"] as const).map((t) => (
-                <label key={t} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={targetType === t}
-                    onChange={() => setTargetType(t)}
-                  />
-                  <span>{t === "ALL" ? "全ユーザー" : "特定ユーザー"}</span>
-                </label>
-              ))}
-            </div>
-          </FormField>
-
-          {targetType === "SPECIFIC" && (
-            <FormField label="ユーザー選択" error={errors.targetUserIds}>
-              <Input
-                value={userSearch}
-                onChange={(e) => handleUserSearch(e.target.value)}
-                placeholder="名前またはメールで検索"
-                className="mb-2"
+          {isScheduled && (
+            <FormField label="配信日時" error={errors.scheduledAt} required>
+              <DateTimePicker
+                value={scheduledAt}
+                onChange={setScheduledAt}
+                timezone={timezone}
               />
-              {searchResults.length > 0 && (
-                <div className="border rounded-md max-h-32 overflow-y-auto">
-                  {searchResults.map((user) => (
-                    <div
-                      key={user.id}
-                      onClick={() => toggleUser(user)}
-                      className={`px-3 py-2 text-sm cursor-pointer hover:bg-accent ${
-                        selectedUsers.some((u) => u.id === user.id)
-                          ? "bg-accent"
-                          : ""
-                      }`}
-                    >
-                      {user.name} ({user.email})
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedUsers.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {selectedUsers.map((user) => (
-                    <span
-                      key={user.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-xs"
-                    >
-                      {user.name}
-                      <button
-                        type="button"
-                        onClick={() => toggleUser(user)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
             </FormField>
           )}
 
-          <FormField label="配信タイミング">
-            <div className="flex gap-4">
-              {(["即時", "予約"] as const).map((t, i) => (
-                <label key={t} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    checked={isScheduled === (i === 1)}
-                    onChange={() => setIsScheduled(i === 1)}
-                  />
-                  <span>{t}</span>
-                </label>
-              ))}
-            </div>
-          </FormField>
-
-          {isScheduled && (
-            <>
-              <FormField label="配信日時" error={errors.scheduledAt} required>
-                <DateTimePicker
-                  value={scheduledAt}
-                  onChange={setScheduledAt}
-                  timezone={timezone}
-                />
-              </FormField>
-            </>
-          )}
-
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 border-t pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               キャンセル
             </Button>
