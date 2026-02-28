@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, BellRing, BellOff, CheckCheck } from "lucide-react";
 import type { Notification } from "@/features/notifications/types/notification.types";
 import { useWebSocket } from "@/lib/hooks/use-websocket";
+import { usePushNotification } from "@/lib/hooks/use-push-notification";
 
 type NotificationType = Notification["type"];
 
@@ -85,6 +86,14 @@ export function NotificationsClientPage({
   const { status: wsStatus } = useWebSocket({
     onNotification: handleNewNotification,
   });
+
+  const {
+    permission: pushPermission,
+    isSubscribed: isPushSubscribed,
+    isLoading: isPushLoading,
+    subscribe: pushSubscribe,
+    unsubscribe: pushUnsubscribe,
+  } = usePushNotification();
 
   const handleMarkAsRead = useCallback(async (id: string) => {
     const res = await fetch(`/api/notifications/${id}`, { method: "PATCH" });
@@ -179,6 +188,43 @@ export function NotificationsClientPage({
           </button>
         )}
       </div>
+
+      {/* Web Push 通知バナー */}
+      {pushPermission !== "unsupported" && (
+        <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            {isPushSubscribed ? (
+              <BellRing className="h-4 w-4 text-blue-600" />
+            ) : (
+              <BellOff className="h-4 w-4 text-gray-400" />
+            )}
+            <span>
+              {pushPermission === "denied"
+                ? "プッシュ通知はブラウザ設定でブロックされています"
+                : isPushSubscribed
+                  ? "プッシュ通知: ON"
+                  : "プッシュ通知を有効にすると、ブラウザを閉じていても通知を受け取れます"}
+            </span>
+          </div>
+          {pushPermission !== "denied" && (
+            <button
+              onClick={isPushSubscribed ? pushUnsubscribe : pushSubscribe}
+              disabled={isPushLoading}
+              className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-md transition-colors disabled:opacity-50 ${
+                isPushSubscribed
+                  ? "text-gray-600 border border-gray-300 hover:bg-gray-50"
+                  : "text-white bg-blue-600 hover:bg-blue-700"
+              }`}
+            >
+              {isPushLoading
+                ? "処理中..."
+                : isPushSubscribed
+                  ? "無効にする"
+                  : "有効にする"}
+            </button>
+          )}
+        </div>
+      )}
 
       {notifications.length === 0 ? (
         <div className="text-center py-12 text-gray-500">

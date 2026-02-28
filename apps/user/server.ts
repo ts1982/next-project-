@@ -3,6 +3,8 @@ import type { Server } from "http";
 import next from "next";
 import { setupWebSocketServer } from "./src/lib/ws/setup";
 import { connectionManager } from "./src/lib/ws/connection-manager";
+import { sendPushNotifications } from "./src/lib/push/web-push";
+import { prisma } from "@repo/database";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
@@ -37,10 +39,18 @@ app.prepare().then(() => {
             res.end(JSON.stringify({ error: "Bad request" }));
             return;
           }
+
+          // WebSocket ブロードキャスト（既存）
           connectionManager.broadcast(userIds, {
             type: "NEW_NOTIFICATION",
             notification,
           });
+
+          // Web Push 送信（非同期・失敗しても 200 を返す）
+          sendWebPush(userIds, notification).catch((err) => {
+            console.error("[web-push] Broadcast error:", err);
+          });
+
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: true }));
         } catch {
@@ -71,3 +81,36 @@ app.prepare().then(() => {
     console.log(`> WS Ready on ws://${hostname}:${wsPort}/ws`);
   });
 });
+
+/**
+ * 対象ユーザーの Push サブスクリプションに Web Push を一括送信する
+ * 無効になったサブスクリプションは DB から削除する
+ */
+async function sendWebPush(
+  userIds: string[],
+  notification: { title: string; body: string; type: string },
+): Promise<void> {
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: { userId: { in: userIds } },
+    select: { endpoint: true, p256dh: true, auth: true },
+  });
+
+  if (subscriptions.length === 0) return;
+
+  const expiredEndpoints = await sendPushNotifications(subscriptions, {
+    title: notification.title,
+    body: notification.body,
+    type: notification.type,
+    url: "/notifications",
+  });
+
+  // 無効なサブスクリプションを削除
+  if (expiredEndpoints.length > 0) {
+    await prisma.pushSubscription.deleteMany({
+      where: { endpoint: { in: expiredEndpoints } },
+    });
+    console.log(
+      `[web-push] Cleaned up ${expiredEndpoints.length} expired subscriptions`,
+    );
+  }
+}
