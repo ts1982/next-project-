@@ -17,8 +17,6 @@ interface UsePushNotificationReturn {
   unsubscribe: () => Promise<void>;
 }
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
-
 /**
  * URL-safe base64 を Uint8Array に変換（applicationServerKey 用）
  */
@@ -31,6 +29,29 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+/**
+ * VAPID 公開鍵をサーバーからランタイムで取得する。
+ * NEXT_PUBLIC_* はビルド時インライン化されるため、Docker ビルド後の
+ * 本番環境ではランタイム API 経由で取得する必要がある。
+ */
+let vapidKeyCache: string | undefined;
+
+async function getVapidPublicKey(): Promise<string> {
+  if (vapidKeyCache !== undefined) return vapidKeyCache;
+
+  try {
+    const res = await fetch("/api/push-config");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const key: string = data.vapidPublicKey || "";
+    vapidKeyCache = key;
+    return key;
+  } catch (err) {
+    console.error("[push] Failed to fetch VAPID public key:", err);
+    return "";
+  }
 }
 
 export function usePushNotification(): UsePushNotificationReturn {
@@ -61,13 +82,14 @@ export function usePushNotification(): UsePushNotificationReturn {
   }, []);
 
   const subscribe = useCallback(async () => {
-    if (!VAPID_PUBLIC_KEY) {
-      console.warn("[push] VAPID public key not configured");
-      return;
-    }
-
     setIsLoading(true);
     try {
+      const vapidPublicKey = await getVapidPublicKey();
+      if (!vapidPublicKey) {
+        console.warn("[push] VAPID public key not configured");
+        return;
+      }
+
       const registration =
         registrationRef.current ?? (await navigator.serviceWorker.ready);
       registrationRef.current = registration;
@@ -84,7 +106,7 @@ export function usePushNotification(): UsePushNotificationReturn {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(
-            VAPID_PUBLIC_KEY,
+            vapidPublicKey,
           ) as BufferSource,
         });
       }

@@ -1,4 +1,6 @@
 // 通知受信者（User）閲覧専用ページ
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/db/prisma";
 import { PAGINATION } from "@/lib/constants/pagination";
 import { UsersReceiverClientPage } from "./page.client";

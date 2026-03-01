@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react"
 import { Users, TrendingUp, UserPlus } from "lucide-react"
 import { prisma } from "@/lib/db/prisma"

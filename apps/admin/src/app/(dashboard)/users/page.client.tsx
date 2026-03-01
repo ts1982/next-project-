@@ -4,7 +4,7 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { Users as UsersIcon } from "lucide-react"
 import { Pagination } from "@/components/common/pagination"
-import { SearchForm } from "@/components/common/search-form"
+import { UserSearch } from "@/features/users/components/user-search"
 import { DataTable } from "@/components/common/data-table"
 import { formatInTimezone } from "@/lib/utils/timezone"
 import type { Column } from "@/components/common/data-table"
@@ -71,7 +71,7 @@ export function UsersReceiverClientPage({
         </p>
       </div>
 
-      <SearchForm defaultValue={initialSearch} />
+      <UserSearch defaultValue={initialSearch} />
 
       <div className="space-y-4">
         <DataTable

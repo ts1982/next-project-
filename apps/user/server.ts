@@ -9,7 +9,6 @@ import { prisma } from "@repo/database";
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = parseInt(process.env.PORT || "3001", 10);
-const wsPort = parseInt(process.env.WS_PORT || "3002", 10);
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || "dev-secret";
 
 const app = next({ dev, hostname, port });
@@ -70,15 +69,12 @@ app.prepare().then(() => {
   };
   nextCustomServer.setupWebSocketHandler?.(server);
 
-  const wsServer = createServer();
-  setupWebSocketServer(wsServer);
+  // WebSocket を同一 HTTP サーバー (同一ポート) で提供
+  setupWebSocketServer(server);
 
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
-  });
-
-  wsServer.listen(wsPort, () => {
-    console.log(`> WS Ready on ws://${hostname}:${wsPort}/ws`);
+    console.log(`> WS Ready on ws://${hostname}:${port}/ws`);
   });
 });
 

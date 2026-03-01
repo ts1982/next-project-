@@ -3,6 +3,7 @@ import type { NextAuthConfig } from "next-auth";
 const PROTECTED_PATHS = ["/notifications"] as const;
 
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
@@ -18,8 +19,7 @@ export const authConfig = {
       const isProtectedRoute = PROTECTED_PATHS.some((path) =>
         pathname.startsWith(path),
       );
-      const isAuthPage =
-        pathname === "/login" || pathname === "/register";
+      const isAuthPage = pathname === "/login" || pathname === "/register";
 
       if (isProtectedRoute && !isLoggedIn) {
         const callbackUrl = encodeURIComponent(nextUrl.href);

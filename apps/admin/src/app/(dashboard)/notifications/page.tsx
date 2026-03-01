@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { auth } from "../../../../auth";
 import { getDefaultTimezone } from "@/lib/utils/timezone";
 import { getAdminNotificationList } from "@/features/notifications/services/admin-notification.service";

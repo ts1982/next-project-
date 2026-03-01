@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getStoreList } from "@/features/stores"
 import { PAGINATION } from "@/lib/constants/pagination"
 import { getDefaultTimezone } from "@/lib/utils/timezone"
