@@ -16,50 +16,6 @@ services:
       timeout: 20s
       retries: 10
 
-  admin:
-    image: node:20-alpine
-    container_name: next-project-admin
-    working_dir: /app
-    volumes:
-      - .:/app
-      - admin_node_modules:/app/node_modules
-      - admin_next:/app/apps/admin/.next
-    command: sh -c "npm install && cd packages/database && npx prisma generate && cd /app && npm run dev --workspace=@repo/admin -- -H 0.0.0.0"
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: postgresql://nextuser:nextpassword@db:5432/nextdb
-      NEXTAUTH_SECRET: admin-nextauth-secret
-      NEXTAUTH_URL: http://localhost:3000
-      NODE_ENV: development
-      CRON_SECRET: ${CRON_SECRET:-change-this-cron-secret}
-      USER_APP_URL: http://user:3001
-      INTERNAL_API_SECRET: dev-secret
-    depends_on:
-      db:
-        condition: service_healthy
-
-  user:
-    image: node:20-alpine
-    container_name: next-project-user
-    working_dir: /app
-    volumes:
-      - .:/app
-      - user_node_modules:/app/node_modules
-      - user_next:/app/apps/user/.next
-    command: sh -c "npm install && cd packages/database && npx prisma generate && cd /app && npm run dev --workspace=@repo/user"
-    ports:
-      - "3001:3001"
-    environment:
-      DATABASE_URL: postgresql://nextuser:nextpassword@db:5432/nextdb
-      NEXTAUTH_SECRET: user-nextauth-secret
-      NEXTAUTH_URL: http://localhost:3001
-      NODE_ENV: development
-      INTERNAL_API_SECRET: dev-secret
-    depends_on:
-      db:
-        condition: service_healthy
-
   # 配信予定の通知を毎分チェックして配信する cron ジョブ
   cron:
     image: alpine:3.19
@@ -72,16 +28,10 @@ services:
       - |
         apk add --no-cache curl
         while true; do
-          curl -sf -H "Authorization: Bearer $$CRON_SECRET" http://admin:3000/api/cron/deliver || true
+          curl -sf -H "Authorization: Bearer $$CRON_SECRET" http://host.docker.internal:3000/api/cron/deliver || true
           sleep 60
         done
-    depends_on:
-      - admin
     restart: unless-stopped
 
 volumes:
   postgres_data:
-  admin_node_modules:
-  admin_next:
-  user_node_modules:
-  user_next:

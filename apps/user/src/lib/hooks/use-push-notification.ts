@@ -11,6 +11,8 @@ interface UsePushNotificationReturn {
   isSubscribed: boolean;
   /** 処理中フラグ */
   isLoading: boolean;
+  /** エラーメッセージ */
+  error: string | null;
   /** Push 通知を購読する */
   subscribe: () => Promise<void>;
   /** Push 通知の購読を解除する */
@@ -54,13 +56,30 @@ async function getVapidPublicKey(): Promise<string> {
   }
 }
 
+/**
+ * サーバー側にサブスクリプションが存在するか確認する
+ */
+async function checkServerSubscription(endpoint: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `/api/push-subscription/check?endpoint=${encodeURIComponent(endpoint)}`,
+    );
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.data?.exists === true;
+  } catch {
+    return false;
+  }
+}
+
 export function usePushNotification(): UsePushNotificationReturn {
   const [permission, setPermission] = useState<PushPermissionState>("prompt");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
-  // 初期化: Service Worker 登録 & 現在の状態確認
+  // 初期化: Service Worker 登録 & 現在の状態確認 & サーバー同期
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
       setPermission("unsupported");
@@ -74,7 +93,41 @@ export function usePushNotification(): UsePushNotificationReturn {
       .then(async (registration) => {
         registrationRef.current = registration;
         const subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(subscription !== null);
+
+        if (subscription) {
+          // ブラウザに subscription がある場合、サーバー側も確認
+          const existsOnServer = await checkServerSubscription(
+            subscription.endpoint,
+          );
+          if (existsOnServer) {
+            setIsSubscribed(true);
+          } else {
+            // サーバーにレコードがない → 再登録を試みる
+            try {
+              const json = subscription.toJSON();
+              if (json.endpoint && json.keys) {
+                const res = await fetch("/api/push-subscription", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    endpoint: json.endpoint,
+                    keys: {
+                      p256dh: json.keys.p256dh,
+                      auth: json.keys.auth,
+                    },
+                  }),
+                });
+                setIsSubscribed(res.ok);
+              } else {
+                setIsSubscribed(false);
+              }
+            } catch {
+              setIsSubscribed(false);
+            }
+          }
+        } else {
+          setIsSubscribed(false);
+        }
       })
       .catch((err) => {
         console.error("[push] Service Worker registration failed:", err);
@@ -83,10 +136,11 @@ export function usePushNotification(): UsePushNotificationReturn {
 
   const subscribe = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const vapidPublicKey = await getVapidPublicKey();
       if (!vapidPublicKey) {
-        console.warn("[push] VAPID public key not configured");
+        setError("プッシュ通知の設定に問題があります");
         return;
       }
 
@@ -132,15 +186,14 @@ export function usePushNotification(): UsePushNotificationReturn {
       if (!res.ok) {
         const errorData = await res.json().catch(() => null);
         console.error("[push] Server response:", res.status, errorData);
-        throw new Error(
-          errorData?.error ??
-            `Failed to register push subscription (${res.status})`,
-        );
+        setError("サーバーへの登録に失敗しました");
+        return;
       }
 
       setIsSubscribed(true);
     } catch (err) {
       console.error("[push] Subscribe failed:", err);
+      setError("プッシュ通知の登録に失敗しました");
     } finally {
       setIsLoading(false);
     }
@@ -148,6 +201,7 @@ export function usePushNotification(): UsePushNotificationReturn {
 
   const unsubscribe = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const registration =
         registrationRef.current ?? (await navigator.serviceWorker.ready);
@@ -168,10 +222,8 @@ export function usePushNotification(): UsePushNotificationReturn {
             res.status,
             errorData,
           );
-          throw new Error(
-            errorData?.error ??
-              `Failed to unregister push subscription (${res.status})`,
-          );
+          setError("サーバーからの登録解除に失敗しました");
+          return;
         }
 
         await subscription.unsubscribe();
@@ -180,10 +232,11 @@ export function usePushNotification(): UsePushNotificationReturn {
       setIsSubscribed(false);
     } catch (err) {
       console.error("[push] Unsubscribe failed:", err);
+      setError("プッシュ通知の解除に失敗しました");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  return { permission, isSubscribed, isLoading, subscribe, unsubscribe };
+  return { permission, isSubscribed, isLoading, error, subscribe, unsubscribe };
 }

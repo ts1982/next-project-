@@ -17,6 +17,12 @@ function ensureVapidConfigured(): boolean {
   if (!publicKey || !privateKey) {
     return false;
   }
+  if (publicKey === "PLACEHOLDER" || privateKey === "PLACEHOLDER") {
+    console.error(
+      "[web-push] VAPID keys are placeholder values. Run: npx web-push generate-vapid-keys",
+    );
+    return false;
+  }
   webpush.setVapidDetails(subject, publicKey, privateKey);
   return true;
 }

@@ -91,6 +91,7 @@ export function NotificationsClientPage({
     permission: pushPermission,
     isSubscribed: isPushSubscribed,
     isLoading: isPushLoading,
+    error: pushError,
     subscribe: pushSubscribe,
     unsubscribe: pushUnsubscribe,
   } = usePushNotification();
@@ -198,13 +199,18 @@ export function NotificationsClientPage({
             ) : (
               <BellOff className="h-4 w-4 text-gray-400" />
             )}
-            <span>
-              {pushPermission === "denied"
-                ? "プッシュ通知はブラウザ設定でブロックされています"
-                : isPushSubscribed
-                  ? "プッシュ通知: ON"
-                  : "プッシュ通知を有効にすると、ブラウザを閉じていても通知を受け取れます"}
-            </span>
+            <div>
+              <span>
+                {pushPermission === "denied"
+                  ? "プッシュ通知はブラウザ設定でブロックされています"
+                  : isPushSubscribed
+                    ? "プッシュ通知: ON"
+                    : "プッシュ通知を有効にすると、ブラウザを閉じていても通知を受け取れます"}
+              </span>
+              {pushError && (
+                <p className="text-xs text-red-500 mt-1">{pushError}</p>
+              )}
+            </div>
           </div>
           {pushPermission !== "denied" && (
             <button
