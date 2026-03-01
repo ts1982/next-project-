@@ -1,0 +1,316 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  next-project Edge Stack — created on start, deleted on stop.
+  ALB / Target Groups / Listeners / ECS Services / Route53 Alias records.
+
+# ============================================================
+# Parameters
+# ============================================================
+Parameters:
+  ProjectName:
+    Type: String
+    Default: next-project
+
+# ============================================================
+# Resources
+# ============================================================
+Resources:
+
+  # ----------------------------------------------------------
+  # Application Load Balancer (Single-AZ, Public)
+  # ----------------------------------------------------------
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ProjectName}-alb"
+      Scheme: internet-facing
+      Type: application
+      Subnets:
+        - !ImportValue
+          Fn::Sub: "${ProjectName}-PublicSubnetId"
+        - !ImportValue
+          Fn::Sub: "${ProjectName}-PublicSubnet2Id"
+      SecurityGroups:
+        - !ImportValue
+          Fn::Sub: "${ProjectName}-ALBSecurityGroupId"
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "120"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-alb"
+
+  # ----------------------------------------------------------
+  # Target Groups
+  # ----------------------------------------------------------
+  AdminTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-admin-tg"
+      Port: 3000
+      Protocol: HTTP
+      VpcId: !ImportValue
+        Fn::Sub: "${ProjectName}-VPCId"
+      TargetType: ip
+      HealthCheckPath: /api/health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200"
+
+  UserTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ProjectName}-user-tg"
+      Port: 3001
+      Protocol: HTTP
+      VpcId: !ImportValue
+        Fn::Sub: "${ProjectName}-VPCId"
+      TargetType: ip
+      HealthCheckPath: /api/health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: "200"
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: "true"
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: "86400"
+
+  # ----------------------------------------------------------
+  # Listeners
+  # ----------------------------------------------------------
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: "443"
+            StatusCode: HTTP_301
+
+  HTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !ImportValue
+            Fn::Sub: "${ProjectName}-CertificateArn"
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: text/plain
+            MessageBody: "Not Found"
+            StatusCode: "404"
+
+  # Host-based routing: admin.<domain>
+  AdminListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HTTPSListener
+      Priority: 10
+      Conditions:
+        - Field: host-header
+          HostHeaderConfig:
+            Values:
+              - !Sub
+                - "admin.${Domain}"
+                - Domain: !ImportValue
+                    Fn::Sub: "${ProjectName}-DomainName"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref AdminTargetGroup
+
+  # Host-based routing: app.<domain> (user HTTP + WS on same port)
+  UserListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HTTPSListener
+      Priority: 20
+      Conditions:
+        - Field: host-header
+          HostHeaderConfig:
+            Values:
+              - !Sub
+                - "app.${Domain}"
+                - Domain: !ImportValue
+                    Fn::Sub: "${ProjectName}-DomainName"
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref UserTargetGroup
+
+  # ----------------------------------------------------------
+  # Route53 Alias Records
+  # ----------------------------------------------------------
+  AdminDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !ImportValue
+        Fn::Sub: "${ProjectName}-HostedZoneId"
+      Name: !Sub
+        - "admin.${Domain}"
+        - Domain: !ImportValue
+            Fn::Sub: "${ProjectName}-DomainName"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ALB.DNSName
+        HostedZoneId: !GetAtt ALB.CanonicalHostedZoneID
+
+  UserDNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !ImportValue
+        Fn::Sub: "${ProjectName}-HostedZoneId"
+      Name: !Sub
+        - "app.${Domain}"
+        - Domain: !ImportValue
+            Fn::Sub: "${ProjectName}-DomainName"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ALB.DNSName
+        HostedZoneId: !GetAtt ALB.CanonicalHostedZoneID
+
+  # ----------------------------------------------------------
+  # ECS Services
+  # ----------------------------------------------------------
+  AdminService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - AdminListenerRule
+    Properties:
+      ServiceName: !Sub "${ProjectName}-admin-svc"
+      Cluster: !ImportValue
+        Fn::Sub: "${ProjectName}-ECSClusterArn"
+      TaskDefinition: !Sub "${ProjectName}-admin"
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !ImportValue
+              Fn::Sub: "${ProjectName}-PublicSubnetId"
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: "${ProjectName}-FargateSecurityGroupId"
+      LoadBalancers:
+        - ContainerName: admin
+          ContainerPort: 3000
+          TargetGroupArn: !Ref AdminTargetGroup
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 200
+
+  UserService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - UserListenerRule
+    Properties:
+      ServiceName: !Sub "${ProjectName}-user-svc"
+      Cluster: !ImportValue
+        Fn::Sub: "${ProjectName}-ECSClusterArn"
+      TaskDefinition: !Sub "${ProjectName}-user"
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !ImportValue
+              Fn::Sub: "${ProjectName}-PublicSubnetId"
+          SecurityGroups:
+            - !ImportValue
+              Fn::Sub: "${ProjectName}-FargateSecurityGroupId"
+      LoadBalancers:
+        - ContainerName: user
+          ContainerPort: 3001
+          TargetGroupArn: !Ref UserTargetGroup
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 200
+
+  # ----------------------------------------------------------
+  # EventBridge Rule for Cron (5-min interval)
+  # ----------------------------------------------------------
+  CronScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${ProjectName}-cron-rule"
+      ScheduleExpression: "rate(5 minutes)"
+      State: ENABLED
+      Targets:
+        - Id: CronRunTask
+          Arn: !ImportValue
+            Fn::Sub: "${ProjectName}-ECSClusterArn"
+          RoleArn: !GetAtt EventBridgeECSRole.Arn
+          EcsParameters:
+            TaskDefinitionArn: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron"
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                Subnets:
+                  - !ImportValue
+                    Fn::Sub: "${ProjectName}-PublicSubnetId"
+                SecurityGroups:
+                  - !ImportValue
+                    Fn::Sub: "${ProjectName}-FargateSecurityGroupId"
+
+  EventBridgeECSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-eventbridge-ecs-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: RunECSTask
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:RunTask
+                Resource: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron:*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: "*"
+                Condition:
+                  StringLike:
+                    iam:PassedToService: ecs-tasks.amazonaws.com
+
+# ============================================================
+# Outputs
+# ============================================================
+Outputs:
+  ALBDnsName:
+    Value: !GetAtt ALB.DNSName
+  AdminURL:
+    Value: !Sub
+      - "https://admin.${Domain}"
+      - Domain: !ImportValue
+          Fn::Sub: "${ProjectName}-DomainName"
+  UserURL:
+    Value: !Sub
+      - "https://app.${Domain}"
+      - Domain: !ImportValue
+          Fn::Sub: "${ProjectName}-DomainName"

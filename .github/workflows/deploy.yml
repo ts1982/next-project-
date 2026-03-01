@@ -1,0 +1,213 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Deploy target"
+        required: false
+        default: "all"
+        type: choice
+        options:
+          - all
+          - admin
+          - user
+          - cron
+
+env:
+  AWS_REGION: ap-northeast-1
+  PROJECT_NAME: next-project
+
+jobs:
+  # ============================================================
+  # Build & Push Docker images to ECR
+  # ============================================================
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      admin_image: ${{ steps.meta.outputs.admin_image }}
+      user_image: ${{ steps.meta.outputs.user_image }}
+      cron_image: ${{ steps.meta.outputs.cron_image }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tags
+        id: meta
+        run: |
+          REGISTRY=${{ steps.ecr-login.outputs.registry }}
+          SHA=${GITHUB_SHA::8}
+          echo "admin_image=${REGISTRY}/${PROJECT_NAME}/admin:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "user_image=${REGISTRY}/${PROJECT_NAME}/user:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "cron_image=${REGISTRY}/${PROJECT_NAME}/cron:${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ---- admin ----
+      - name: Build & push admin
+        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'admin' || github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.admin
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.admin_image }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/admin:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---- user ----
+      - name: Build & push user
+        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'user' || github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.user
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.user_image }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/user:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ---- cron ----
+      - name: Build & push cron
+        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'cron' || github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.cron
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.cron_image }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/cron:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================================
+  # Update ECS task definitions with new images
+  # ============================================================
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update admin task definition
+        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'admin' || github.event_name == 'push'
+        run: |
+          # Get current task def, update image, register new revision
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${PROJECT_NAME}-admin --query taskDefinition)
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ needs.build-and-push.outputs.admin_image }}" \
+            '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
+
+      - name: Update user task definition
+        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'user' || github.event_name == 'push'
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${PROJECT_NAME}-user --query taskDefinition)
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ needs.build-and-push.outputs.user_image }}" \
+            '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
+
+      - name: Update cron task definition
+        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'cron' || github.event_name == 'push'
+        run: |
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${PROJECT_NAME}-cron --query taskDefinition)
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ needs.build-and-push.outputs.cron_image }}" \
+            '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
+
+      - name: Force new deployment (if services are running)
+        run: |
+          # Only force deploy if services exist and are running
+          for SVC in admin-svc user-svc; do
+            STATUS=$(aws ecs describe-services \
+              --cluster ${PROJECT_NAME}-cluster \
+              --services ${PROJECT_NAME}-${SVC} \
+              --query 'services[0].status' --output text 2>/dev/null || echo "MISSING")
+            if [ "$STATUS" = "ACTIVE" ]; then
+              echo "Deploying ${SVC}..."
+              aws ecs update-service \
+                --cluster ${PROJECT_NAME}-cluster \
+                --service ${PROJECT_NAME}-${SVC} \
+                --force-new-deployment
+            else
+              echo "${SVC} not active (status: ${STATUS}), skipping"
+            fi
+          done
+
+  # ============================================================
+  # DB Migration (manual trigger only)
+  # ============================================================
+  migrate:
+    if: github.event_name == 'workflow_dispatch'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Run Prisma migration via ECS RunTask
+        run: |
+          echo "Running prisma migrate deploy via ECS RunTask..."
+          TASK_ARN=$(aws ecs run-task \
+            --cluster ${PROJECT_NAME}-cluster \
+            --task-definition ${PROJECT_NAME}-admin \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$(aws cloudformation describe-stacks --stack-name ${PROJECT_NAME}-base --query 'Stacks[0].Outputs[?OutputKey==`PublicSubnetId`].OutputValue' --output text)],securityGroups=[$(aws cloudformation describe-stacks --stack-name ${PROJECT_NAME}-base --query 'Stacks[0].Outputs[?OutputKey==`FargateSecurityGroupId`].OutputValue' --output text)],assignPublicIp=ENABLED}" \
+            --overrides '{
+              "containerOverrides": [{
+                "name": "admin",
+                "command": ["sh", "-c", "cd /app && npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma"]
+              }]
+            }' \
+            --query 'tasks[0].taskArn' --output text)
+          echo "Migration task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster ${PROJECT_NAME}-cluster --tasks "$TASK_ARN"
+          EXIT_CODE=$(aws ecs describe-tasks --cluster ${PROJECT_NAME}-cluster --tasks "$TASK_ARN" --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed with exit code $EXIT_CODE"
+            exit 1
+          fi
+          echo "Migration completed successfully"

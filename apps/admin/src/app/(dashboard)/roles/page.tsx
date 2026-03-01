@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getRoleList, getAllPermissions } from "@/features/roles"
 import { RolesClientPage } from "./page.client"
 

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { auth } from "../../../../auth";
 import { getNotificationsByUserId } from "@/features/notifications/services/notification.service";
 import { getUnreadCount } from "@/features/notifications/services/notification.service";

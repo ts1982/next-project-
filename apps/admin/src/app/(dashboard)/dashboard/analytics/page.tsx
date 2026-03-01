@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { BarChart as BarChartIcon } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 

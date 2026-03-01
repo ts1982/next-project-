@@ -6,7 +6,7 @@
 
 ## Monorepo Layout
 - `apps/admin`: 管理画面（3000）
-- `apps/user`: ユーザー向け画面 + custom server（3001 / WS 3002）
+- `apps/user`: ユーザー向け画面 + custom server（3001 / WS 同一ポート）
 - `packages/database`: Prisma schema / seed / client
 
 ## Commands

@@ -1,9 +1,46 @@
-node_modules
-.next
+# Version control
 .git
-.env
-.env.local
+.gitignore
+*.md
+LICENSE
+
+# Dependencies (rebuilt in Docker)
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+
+# Build outputs
+.next
+apps/*/.next
+apps/*/out
 dist
 build
-*.log
+
+# Environment files
+.env
+.env.local
+.env.*
+!.env.example
+
+# IDE / Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Infra / CI (not needed in app images)
+infra/
+.github/
+docker-compose*.yml
+Dockerfile.*
+Makefile
+
+# Backups
+prisma.bak/

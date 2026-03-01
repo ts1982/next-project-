@@ -1,0 +1,69 @@
+# ============================================================
+# Dockerfile.admin — admin app (Next.js)
+# Build context: project root (monorepo)
+# ============================================================
+
+# ---- base ----
+FROM node:20-alpine AS base
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# ---- deps ----
+FROM base AS deps
+COPY package.json package-lock.json turbo.json ./
+COPY apps/admin/package.json ./apps/admin/
+COPY packages/database/package.json ./packages/database/
+COPY packages/ui/package.json ./packages/ui/
+# Prisma schema must exist before npm ci (postinstall triggers prisma generate)
+COPY packages/database/prisma ./packages/database/prisma
+RUN npm ci
+
+# ---- build ----
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source
+COPY packages/database ./packages/database
+COPY packages/ui ./packages/ui
+COPY apps/admin ./apps/admin
+COPY package.json turbo.json ./
+
+# Rebuild Prisma Client in build stage
+RUN cd packages/database && npx prisma generate
+
+# Build admin app
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build --workspace=@repo/admin
+
+# ---- runner ----
+FROM node:20-alpine AS runner
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built app + node_modules (next start needs full node_modules)
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages/database ./packages/database
+COPY --from=build /app/packages/ui ./packages/ui
+COPY --from=build /app/apps/admin/.next ./apps/admin/.next
+COPY --from=build /app/apps/admin/public ./apps/admin/public
+COPY --from=build /app/apps/admin/next.config.ts ./apps/admin/next.config.ts
+COPY --from=build /app/apps/admin/package.json ./apps/admin/package.json
+COPY --from=build /app/apps/admin/middleware.ts ./apps/admin/middleware.ts
+COPY --from=build /app/apps/admin/auth.ts ./apps/admin/auth.ts
+COPY --from=build /app/apps/admin/auth.config.ts ./apps/admin/auth.config.ts
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/turbo.json ./turbo.json
+
+USER nextjs
+EXPOSE 3000
+
+WORKDIR /app/apps/admin
+CMD ["npx", "next", "start"]

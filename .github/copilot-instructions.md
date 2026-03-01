@@ -7,7 +7,7 @@
 # 主要ディレクトリ
 
 - `apps/admin`: 管理画面（ポート 3000）
-- `apps/user`: ユーザー向け画面 + カスタムサーバー（ポート 3001 / WS 3002）
+- `apps/user`: ユーザー向け画面 + カスタムサーバー（ポート 3001 / WS ポート 3001 同居）
 - `packages/database`: Prisma schema / seed / client
 
 # 基本方針
