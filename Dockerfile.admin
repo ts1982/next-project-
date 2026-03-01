@@ -32,7 +32,10 @@ COPY package.json turbo.json ./
 RUN cd packages/database && npx prisma generate
 
 # Build admin app
+# SKIP_ENV_VALIDATION=1: ビルド時は本番 DB 等の環境変数が存在しないため検証をスキップする。
+# 実際の環境変数は ECS タスク定義でランタイムに注入される。
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV SKIP_ENV_VALIDATION=1
 RUN npm run build --workspace=@repo/admin
 
 # ---- runner ----

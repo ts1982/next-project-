@@ -163,9 +163,14 @@ export function usePushNotification(): UsePushNotificationReturn {
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
-          console.error("[push] Unsubscribe server response:", res.status, errorData);
+          console.error(
+            "[push] Unsubscribe server response:",
+            res.status,
+            errorData,
+          );
           throw new Error(
-            errorData?.error ?? `Failed to unregister push subscription (${res.status})`,
+            errorData?.error ??
+              `Failed to unregister push subscription (${res.status})`,
           );
         }
 

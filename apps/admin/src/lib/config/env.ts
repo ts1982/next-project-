@@ -51,6 +51,12 @@ const envSchema = z.object({
 
 // 環境変数をパースし、失敗時はエラーを詳細に表示
 function parseEnv() {
+  // Docker ビルド時は SKIP_ENV_VALIDATION=1 でバリデーションをスキップする。
+  // 実際の値は ECS タスク定義の環境変数としてランタイムに注入される。
+  if (process.env.SKIP_ENV_VALIDATION === "1") {
+    return process.env as unknown as z.infer<typeof envSchema>;
+  }
+
   const parsed = envSchema.safeParse(process.env);
 
   if (!parsed.success) {
