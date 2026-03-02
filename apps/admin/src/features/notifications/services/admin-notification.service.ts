@@ -250,23 +250,33 @@ async function broadcastToUserApp(
  * 単一 AdminNotification を配信する（transaction）
  */
 async function deliverNotification(adminNotificationId: string): Promise<void> {
-  const notification = await prisma.adminNotification.findUnique({
-    where: { id: adminNotificationId },
-    select: {
-      id: true,
-      title: true,
-      body: true,
-      type: true,
-      targetType: true,
-      targets: { select: { userId: true } },
-    },
-  });
-
-  if (!notification || notification.targetType === undefined) return;
-
   let deliveredUserIds: string[] = [];
+  let notificationSnapshot: {
+    id: string;
+    title: string;
+    body: string;
+    type: string;
+  } | null = null;
 
   await prisma.$transaction(async (tx) => {
+    // トランザクション内で deliveredAt を確認し、二重配信を防ぐ
+    const notification = await tx.adminNotification.findUnique({
+      where: { id: adminNotificationId },
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        type: true,
+        targetType: true,
+        deliveredAt: true,
+        targets: { select: { userId: true } },
+      },
+    });
+
+    if (!notification || notification.targetType === undefined) return;
+    // 既に配信済みの場合はスキップ（cron 重複実行対策）
+    if (notification.deliveredAt !== null) return;
+
     let userIds: string[] = [];
 
     if (notification.targetType === "ALL") {
@@ -285,6 +295,7 @@ async function deliverNotification(adminNotificationId: string): Promise<void> {
           body: notification.body,
           type: notification.type,
         })),
+        skipDuplicates: true,
       });
     }
 
@@ -294,16 +305,17 @@ async function deliverNotification(adminNotificationId: string): Promise<void> {
     });
 
     deliveredUserIds = userIds;
-  });
-
-  // トランザクション完了後にリアルタイム通知（失敗しても配信は成功扱い）
-  if (deliveredUserIds.length > 0) {
-    broadcastToUserApp(deliveredUserIds, {
+    notificationSnapshot = {
       id: notification.id,
       title: notification.title,
       body: notification.body,
       type: notification.type,
-    }).catch((err) => {
+    };
+  });
+
+  // トランザクション完了後にリアルタイム通知（失敗しても配信は成功扱い）
+  if (deliveredUserIds.length > 0 && notificationSnapshot !== null) {
+    broadcastToUserApp(deliveredUserIds, notificationSnapshot).catch((err) => {
       console.error("[broadcast] Error:", err);
     });
   }

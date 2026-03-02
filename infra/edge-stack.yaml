@@ -258,7 +258,9 @@ Resources:
             Fn::Sub: "${ProjectName}-ECSClusterArn"
           RoleArn: !GetAtt EventBridgeECSRole.Arn
           EcsParameters:
-            TaskDefinitionArn: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron"
+            # リビジョン付き ARN を使用。bare ARN では IAM ポリシー評価時に :* パターンと不一致になり RunTask が失敗する
+            TaskDefinitionArn: !ImportValue
+              Fn::Sub: "${ProjectName}-CronTaskDefArn"
             LaunchType: FARGATE
             NetworkConfiguration:
               AwsVpcConfiguration:
@@ -289,7 +291,11 @@ Resources:
               - Effect: Allow
                 Action:
                   - ecs:RunTask
-                Resource: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron:*"
+                Resource:
+                  # リビジョン付き ARN (例: next-project-cron:3) にマッチさせる
+                  - !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron:*"
+                  # bare ARN (リビジョンなし) でリクエストされた場合も許可
+                  - !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron"
               - Effect: Allow
                 Action:
                   - iam:PassRole
