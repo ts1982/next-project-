@@ -1,3 +1,9 @@
+import {
+  SchedulerClient,
+  CreateScheduleCommand,
+  DeleteScheduleCommand,
+  ResourceNotFoundException,
+} from "@aws-sdk/client-scheduler";
 import { prisma } from "@/lib/db/prisma";
 import { PAGINATION } from "@/lib/constants/pagination";
 import { convertToUTC } from "@/lib/utils/timezone";
@@ -27,6 +33,7 @@ const NOTIFICATION_SELECT = {
   type: true,
   targetType: true,
   scheduledAt: true,
+  schedulerName: true,
   deliveredAt: true,
   createdAt: true,
   updatedAt: true,
@@ -125,7 +132,19 @@ export async function createAdminNotification(
     return { notification: delivered! };
   }
 
-  return { notification };
+  // 予約配信: EventBridge Scheduler に 1 件登録
+  const schedulerName = await registerScheduler(
+    notification.id,
+    scheduledAtUTC,
+  );
+  await prisma.adminNotification.update({
+    where: { id: notification.id },
+    data: { schedulerName },
+  });
+
+  return {
+    notification: { ...notification, schedulerName },
+  };
 }
 
 export async function updateAdminNotification(
@@ -134,7 +153,7 @@ export async function updateAdminNotification(
 ): Promise<UpdateAdminNotificationResponse> {
   const existing = await prisma.adminNotification.findUnique({
     where: { id },
-    select: { deliveredAt: true },
+    select: { deliveredAt: true, schedulerName: true },
   });
 
   if (!existing) {
@@ -155,6 +174,11 @@ export async function updateAdminNotification(
       const tz = timezone || "Asia/Tokyo";
       scheduledAtUTC = convertToUTC(scheduledAt, tz);
     }
+  }
+
+  // scheduledAt が変更される場合は旧スケジューラを先にキャンセル
+  if (scheduledAt !== undefined && existing.schedulerName) {
+    await cancelScheduler(existing.schedulerName);
   }
 
   const notification = await prisma.$transaction(async (tx) => {
@@ -178,10 +202,24 @@ export async function updateAdminNotification(
       data: {
         ...rest,
         ...(scheduledAtUTC !== undefined && { scheduledAt: scheduledAtUTC }),
+        // schedulerName は調整後に更新（null クリアしてから再登録）
+        ...(scheduledAt !== undefined && { schedulerName: null }),
       },
       select: NOTIFICATION_SELECT,
     });
   });
+
+  // 新しい scheduledAt があれば再登録
+  if (scheduledAtUTC) {
+    const newSchedulerName = await registerScheduler(id, scheduledAtUTC);
+    await prisma.adminNotification.update({
+      where: { id },
+      data: { schedulerName: newSchedulerName },
+    });
+    return {
+      notification: { ...notification, schedulerName: newSchedulerName },
+    };
+  }
 
   return { notification };
 }
@@ -189,7 +227,7 @@ export async function updateAdminNotification(
 export async function deleteAdminNotification(id: string): Promise<void> {
   const existing = await prisma.adminNotification.findUnique({
     where: { id },
-    select: { deliveredAt: true },
+    select: { deliveredAt: true, schedulerName: true },
   });
 
   if (!existing) {
@@ -198,6 +236,11 @@ export async function deleteAdminNotification(id: string): Promise<void> {
 
   if (existing.deliveredAt) {
     throw new ConflictError();
+  }
+
+  // EventBridge Scheduler のスケジュールを先に削除
+  if (existing.schedulerName) {
+    await cancelScheduler(existing.schedulerName);
   }
 
   await prisma.adminNotification.delete({ where: { id } });
@@ -221,6 +264,73 @@ export async function deliverDueNotifications(): Promise<DeliverNotificationsRes
   return { delivered: due.length };
 }
 
+// ---------------------------------------------------------------------------
+// EventBridge Scheduler helpers
+// ---------------------------------------------------------------------------
+
+const schedulerClient = new SchedulerClient({
+  region: process.env.AWS_DEFAULT_REGION ?? "ap-northeast-1",
+});
+
+/**
+ * EventBridge Scheduler に通知配信スケジュールを 1 件登録し、スケジュール名を返す。
+ * ActionAfterCompletion: DELETE により実行後に自動削除される。
+ */
+async function registerScheduler(
+  notificationId: string,
+  scheduledAt: Date,
+): Promise<string> {
+  const lambdaArn = process.env.NOTIFICATION_LAMBDA_ARN;
+  const roleArn = process.env.SCHEDULER_EXECUTION_ROLE_ARN;
+
+  if (!lambdaArn || !roleArn) {
+    throw new Error(
+      "NOTIFICATION_LAMBDA_ARN / SCHEDULER_EXECUTION_ROLE_ARN が未設定です",
+    );
+  }
+
+  const scheduleName = `notification-${notificationId}`;
+  // EventBridge Scheduler の at() 式は UTC の ISO8601（Zなし）形式
+  const atExpression = `at(${scheduledAt.toISOString().slice(0, 19)})`;
+
+  await schedulerClient.send(
+    new CreateScheduleCommand({
+      Name: scheduleName,
+      ScheduleExpression: atExpression,
+      ScheduleExpressionTimezone: "UTC",
+      FlexibleTimeWindow: { Mode: "OFF" },
+      Target: {
+        Arn: lambdaArn,
+        RoleArn: roleArn,
+        Input: JSON.stringify({ notificationId }),
+      },
+      ActionAfterCompletion: "DELETE",
+    }),
+  );
+
+  console.log(`[scheduler] Registered: ${scheduleName} at ${atExpression}`);
+  return scheduleName;
+}
+
+/**
+ * EventBridge Scheduler からスケジュールを削除する。
+ * 配信後に自動削除済みの場合（ResourceNotFoundException）は無視する。
+ */
+async function cancelScheduler(schedulerName: string): Promise<void> {
+  try {
+    await schedulerClient.send(
+      new DeleteScheduleCommand({ Name: schedulerName }),
+    );
+    console.log(`[scheduler] Cancelled: ${schedulerName}`);
+  } catch (err) {
+    if (err instanceof ResourceNotFoundException) {
+      // 既に配信・自動削除済みは正常
+      return;
+    }
+    throw err;
+  }
+}
+
 /**
  * User App にリアルタイム通知をブロードキャストする
  */
@@ -228,8 +338,7 @@ async function broadcastToUserApp(
   userIds: string[],
   notification: { id: string; title: string; body: string; type: string },
 ): Promise<void> {
-  const userAppUrl =
-    process.env.USER_APP_URL || "http://localhost:3001";
+  const userAppUrl = process.env.USER_APP_URL || "http://localhost:3001";
   const secret = process.env.INTERNAL_API_SECRET || "dev-secret";
 
   const res = await fetch(`${userAppUrl}/api/internal/broadcast`, {

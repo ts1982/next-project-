@@ -133,6 +133,8 @@ model AdminNotification {
   targetType       NotificationTargetType @default(ALL)
   scheduledAt      DateTime?
   deliveredAt      DateTime?
+  /// EventBridge Scheduler のスケジュール名（予約配信時のみ）
+  schedulerName    String?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 

@@ -1,4 +1,4 @@
-.PHONY: help dev build start lint db-* prisma-* seed clean install infra-start infra-stop infra-status
+.PHONY: help dev build start lint db-* prisma-* seed clean install infra-start infra-stop infra-status deploy-admin deploy-user deploy-lambda deploy-all
 
 # デフォルトターゲット
 help:
@@ -9,6 +9,12 @@ help:
 	@echo "  make build            - Build for production"
 	@echo "  make start            - Start production server"
 	@echo "  make lint             - Run ESLint"
+	@echo ""
+	@echo "Deploy (Docker images):"
+	@echo "  make deploy-admin    - Build & push admin image to ECR"
+	@echo "  make deploy-user     - Build & push user image to ECR"
+	@echo "  make deploy-lambda   - Build & push notification-lambda image to ECR"
+	@echo "  make deploy-all      - Build & push all images to ECR"
 	@echo ""
 	@echo "AWS Infrastructure:"
 	@echo "  make infra-start      - Start AWS environment (Lambda → RDS → Edge Stack)"
@@ -118,10 +124,13 @@ setup: install db-up prisma-migrate seed
 # ============================================================
 # AWS Infrastructure (本番環境 start / stop)
 # ============================================================
-AWS_REGION ?= ap-northeast-1
-AWS_STACK   = next-project-edge
-START_FN    = next-project-start
-STOP_FN     = next-project-stop
+AWS_REGION  ?= ap-northeast-1
+AWS_ACCOUNT ?= $(shell aws sts get-caller-identity --query Account --output text 2>/dev/null)
+ECR_BASE     = $(AWS_ACCOUNT).dkr.ecr.$(AWS_REGION).amazonaws.com
+PROJECT      = next-project
+AWS_STACK    = next-project-edge
+START_FN     = next-project-start
+STOP_FN      = next-project-stop
 
 infra-start:
 	@echo "🚀 Starting AWS environment..."
@@ -198,3 +207,36 @@ infra-status:
 	  --query 'ScheduleExpression' \
 	  --output text 2>&1 || echo "(no auto-stop scheduled)"); \
 	  echo "   Auto-stop   : $$SCHEDULE"
+
+# ============================================================
+# Deploy (Docker images → ECR)
+# ============================================================
+
+# ECR ログイン（各ターゲットから依存）
+ecr-login:
+	@aws ecr get-login-password --region $(AWS_REGION) | \
+	  docker login --username AWS --password-stdin $(ECR_BASE)
+
+deploy-admin: ecr-login
+	@echo "🐳 Building admin..."
+	docker build -f Dockerfile.admin -t $(ECR_BASE)/$(PROJECT)/admin:latest .
+	docker push $(ECR_BASE)/$(PROJECT)/admin:latest
+	@echo "✅ admin image pushed"
+
+deploy-user: ecr-login
+	@echo "🐳 Building user..."
+	docker build -f Dockerfile.user -t $(ECR_BASE)/$(PROJECT)/user:latest .
+	docker push $(ECR_BASE)/$(PROJECT)/user:latest
+	@echo "✅ user image pushed"
+
+deploy-lambda: ecr-login
+	@echo "🐳 Building notification-lambda..."
+	DOCKER_BUILDKIT=1 docker build \
+	  -f Dockerfile.notification-lambda \
+	  -t $(ECR_BASE)/$(PROJECT)/notification-lambda:latest \
+	  .
+	docker push $(ECR_BASE)/$(PROJECT)/notification-lambda:latest
+	@echo "✅ notification-lambda image pushed"
+
+deploy-all: deploy-admin deploy-user deploy-lambda
+	@echo "✅ All images pushed"

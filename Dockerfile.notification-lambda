@@ -1,0 +1,12 @@
+# Notification Delivery Lambda - Container Image
+# ベース: AWS 公式 Lambda Python 3.12 ランタイム
+FROM public.ecr.aws/lambda/python:3.12
+
+# psycopg2（PostgreSQL ドライバー）をインストール
+RUN pip install --no-cache-dir psycopg2-binary==2.9.10
+
+# ハンドラーをコピー
+COPY infra/lambda/deliver_notification.py ${LAMBDA_TASK_ROOT}/deliver_notification.py
+
+# Lambda ハンドラーを指定
+CMD ["deliver_notification.handler"]
