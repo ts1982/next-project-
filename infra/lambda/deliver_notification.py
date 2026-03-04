@@ -29,7 +29,7 @@ def handler(event, context):
 
     database_url = os.environ["DATABASE_URL"]
     user_app_url = os.environ.get("USER_APP_URL", "http://localhost:3001")
-    internal_api_secret = os.environ.get("INTERNAL_API_SECRET", "dev-secret")
+    internal_api_secret = os.environ["INTERNAL_API_SECRET"]
 
     conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
     try:
