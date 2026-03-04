@@ -74,10 +74,21 @@ def _deliver(conn, notification_id: str):
                 print(f"[deliver] Already delivered: {notification_id}")
                 return [], None
 
-            # ターゲットユーザーを解決
+            # ターゲットユーザーを解決し通知を挿入
             if row["targetType"] == "ALL":
-                cur.execute('SELECT id FROM users')
-                user_ids = [r["id"] for r in cur.fetchall()]
+                # DB 側で INSERT...SELECT を実行し全ユーザー ID を Python メモリに展開しない
+                cur.execute(
+                    """
+                    INSERT INTO notifications
+                      (id, "userId", "adminNotificationId", title, body, type, "isRead", "createdAt", "updatedAt")
+                    SELECT gen_random_uuid()::text, u.id, %s, %s, %s, %s, false, %s, %s
+                    FROM users u
+                    ON CONFLICT DO NOTHING
+                    RETURNING "userId"
+                    """,
+                    (notification_id, row["title"], row["body"], row["type"], now, now),
+                )
+                user_ids = [r["userId"] for r in cur.fetchall()]
             else:
                 cur.execute(
                     'SELECT "userId" FROM admin_notification_targets WHERE "adminNotificationId" = %s',
@@ -85,32 +96,32 @@ def _deliver(conn, notification_id: str):
                 )
                 user_ids = [r["userId"] for r in cur.fetchall()]
 
-            if user_ids:
-                # ユーザー受信箱へ一括 INSERT（CUID の代わりに UUID を使用）
-                values = [
-                    (
-                        str(uuid.uuid4()),
-                        uid,
-                        notification_id,
-                        row["title"],
-                        row["body"],
-                        row["type"],
-                        False,
-                        now,
-                        now,
+                if user_ids:
+                    # ユーザー受信箱へ一括 INSERT（CUID の代わりに UUID を使用）
+                    values = [
+                        (
+                            str(uuid.uuid4()),
+                            uid,
+                            notification_id,
+                            row["title"],
+                            row["body"],
+                            row["type"],
+                            False,
+                            now,
+                            now,
+                        )
+                        for uid in user_ids
+                    ]
+                    psycopg2.extras.execute_values(
+                        cur,
+                        """
+                        INSERT INTO notifications
+                          (id, "userId", "adminNotificationId", title, body, type, "isRead", "createdAt", "updatedAt")
+                        VALUES %s
+                        ON CONFLICT DO NOTHING
+                        """,
+                        values,
                     )
-                    for uid in user_ids
-                ]
-                psycopg2.extras.execute_values(
-                    cur,
-                    """
-                    INSERT INTO notifications
-                      (id, "userId", "adminNotificationId", title, body, type, "isRead", "createdAt", "updatedAt")
-                    VALUES %s
-                    ON CONFLICT DO NOTHING
-                    """,
-                    values,
-                )
 
             # deliveredAt をマーク（二重実行時は既に FOR UPDATE で保護済み）
             cur.execute(
