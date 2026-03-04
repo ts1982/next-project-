@@ -6,7 +6,8 @@ RDS を stop ではなく delete する理由:
   スナップショットを取得してから完全削除することで、停止中のコストをゼロにする。
 
 スナップショット命名:
-  タイムスタンプ付き ({PROJECT_NAME}-final-snap-{unix_time}) で一意性を保証する。
+  タイムスタンプ + UUID サフィックス ({PROJECT_NAME}-final-snap-{unix_time}-{uuid8}) で一意性を保証する。
+  並行実行やリトライが同一秒に発生しても衝突しない。
   start.py は「最新の manual スナップショット」を動的に検索して復元する。
 
 環境変数:
@@ -17,13 +18,14 @@ RDS を stop ではなく delete する理由:
 import json
 import os
 import time
+import uuid
 
 import boto3
 
 PROJECT_NAME = os.environ.get("PROJECT_NAME", "next-project")
 RDS_INSTANCE_ID = os.environ["RDS_INSTANCE_ID"]
 
-# タイムスタンプ付きで一意なスナップショット名を生成（衝突なし・削除待ち不要）
+# タイムスタンプ + UUID サフィックスで一意なスナップショット名を生成（衝突なし・削除待ち不要）
 SNAPSHOT_PREFIX = f"{PROJECT_NAME}-final-snap"
 
 rds = boto3.client("rds")
@@ -142,8 +144,8 @@ def delete_rds():
             else:
                 raise RuntimeError(f"[rds] Cannot delete in status: {status}")
 
-        # タイムスタンプ付きで一意なスナップショット名（並行実行時の衝突なし）
-        snapshot_id = f"{SNAPSHOT_PREFIX}-{int(time.time())}"
+        # タイムスタンプ + UUID サフィックスで一意なスナップショット名（並行実行・リトライ時の衝突なし）
+        snapshot_id = f"{SNAPSHOT_PREFIX}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
         print(f"[rds] Deleting instance with final snapshot: {snapshot_id}")
 
         rds.delete_db_instance(
