@@ -37,6 +37,8 @@ Thumbs.db
 
 # Infra / CI (not needed in app images)
 infra/
+!infra/
+!infra/lambda/
 !infra/lambda/deliver_notification.py
 .github/
 docker-compose*.yml
