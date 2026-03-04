@@ -76,19 +76,35 @@ def _deliver(conn, notification_id: str):
 
             # ターゲットユーザーを解決し通知を挿入
             if row["targetType"] == "ALL":
-                # DB 側で INSERT...SELECT を実行し全ユーザー ID を Python メモリに展開しない
-                cur.execute(
-                    """
-                    INSERT INTO notifications
-                      (id, "userId", "adminNotificationId", title, body, type, "isRead", "createdAt", "updatedAt")
-                    SELECT gen_random_uuid()::text, u.id, %s, %s, %s, %s, false, %s, %s
-                    FROM users u
-                    ON CONFLICT DO NOTHING
-                    RETURNING "userId"
-                    """,
-                    (notification_id, row["title"], row["body"], row["type"], now, now),
-                )
-                user_ids = [r["userId"] for r in cur.fetchall()]
+                # 全ユーザーを対象に Python 側で UUID を生成して一括 INSERT する
+                cur.execute("SELECT id FROM users")
+                user_ids = [r["id"] for r in cur.fetchall()]
+
+                if user_ids:
+                    values = [
+                        (
+                            str(uuid.uuid4()),
+                            uid,
+                            notification_id,
+                            row["title"],
+                            row["body"],
+                            row["type"],
+                            False,
+                            now,
+                            now,
+                        )
+                        for uid in user_ids
+                    ]
+                    psycopg2.extras.execute_values(
+                        cur,
+                        """
+                        INSERT INTO notifications
+                          (id, "userId", "adminNotificationId", title, body, type, "isRead", "createdAt", "updatedAt")
+                        VALUES %s
+                        ON CONFLICT DO NOTHING
+                        """,
+                        values,
+                    )
             else:
                 cur.execute(
                     'SELECT "userId" FROM admin_notification_targets WHERE "adminNotificationId" = %s',
