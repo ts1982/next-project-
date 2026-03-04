@@ -146,15 +146,8 @@ export async function createAdminNotification(
     });
   } catch (error) {
     // DB 更新に失敗した場合は、作成済みのスケジュールを削除して整合性を保つ
-    const schedulerClient = new SchedulerClient({});
     try {
-      await schedulerClient.send(
-        new DeleteScheduleCommand({
-          Name: schedulerName,
-          // registerScheduler と同じグループを利用することを想定
-          GroupName: SCHEDULER_GROUP_NAME,
-        }),
-      );
+      await cancelScheduler(schedulerName);
     } catch (deleteError) {
       // すでに削除済みの場合は無視し、それ以外はログだけ残す
       if (!(deleteError instanceof ResourceNotFoundException)) {
@@ -199,10 +192,9 @@ export async function updateAdminNotification(
     }
   }
 
-  // scheduledAt が変更される場合は旧スケジューラを先にキャンセル
-  if (scheduledAt !== undefined && existing.schedulerName) {
-    await cancelScheduler(existing.schedulerName);
-  }
+  // scheduledAt が変更される場合は旧スケジューラ名を保持（DB 更新成功後にキャンセル）
+  const oldSchedulerName =
+    scheduledAt !== undefined ? existing.schedulerName : null;
 
   const notification = await prisma.$transaction(async (tx) => {
     // SPECIFIC の targets を更新
@@ -232,13 +224,37 @@ export async function updateAdminNotification(
     });
   });
 
+  // DB 更新成功後に旧スケジューラをキャンセル（先にキャンセルすると DB 更新失敗時に不整合が生じる）
+  // キャンセル失敗時はログだけ残す（DB 側の schedulerName: null が正として扱う）
+  if (oldSchedulerName) {
+    try {
+      await cancelScheduler(oldSchedulerName);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to cancel old scheduler after DB update", err);
+    }
+  }
+
   // 新しい scheduledAt があれば再登録
   if (scheduledAtUTC) {
     const newSchedulerName = await registerScheduler(id, scheduledAtUTC);
-    await prisma.adminNotification.update({
-      where: { id },
-      data: { schedulerName: newSchedulerName },
-    });
+    try {
+      await prisma.adminNotification.update({
+        where: { id },
+        data: { schedulerName: newSchedulerName },
+      });
+    } catch (error) {
+      // DB 更新に失敗した場合は、作成済みのスケジュールを削除して整合性を保つ
+      try {
+        await cancelScheduler(newSchedulerName);
+      } catch (deleteError) {
+        if (!(deleteError instanceof ResourceNotFoundException)) {
+          // eslint-disable-next-line no-console
+          console.error("Failed to rollback scheduler creation", deleteError);
+        }
+      }
+      throw error;
+    }
     return {
       notification: { ...notification, schedulerName: newSchedulerName },
     };
