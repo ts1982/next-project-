@@ -116,7 +116,7 @@ jobs:
   # Update ECS task definitions with new images
   # ============================================================
   deploy:
-    needs: build-and-push
+    needs: [build-and-push, migrate]
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -175,10 +175,9 @@ jobs:
           done
 
   # ============================================================
-  # DB Migration (manual trigger only)
+  # DB Migration (runs on every deploy)
   # ============================================================
   migrate:
-    if: github.event_name == 'workflow_dispatch'
     needs: build-and-push
     runs-on: ubuntu-latest
     permissions:
