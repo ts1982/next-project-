@@ -307,6 +307,13 @@ Resources:
       LoggingConfig:
         LogGroup: !Sub "/lambda/${ProjectName}/notification-delivery"
 
+  NotificationDeliveryLambdaPermissionForScheduler:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NotificationDeliveryLambda
+      Action: lambda:InvokeFunction
+      Principal: scheduler.amazonaws.com
+      SourceArn: !Sub "arn:aws:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/notification-*"
   # CronScheduleRule / EventBridgeECSRole は削除
   # （EventBridge Scheduler + Lambda 方式へ移行）
 
