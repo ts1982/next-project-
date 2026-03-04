@@ -247,7 +247,7 @@ Resources:
   # NAT Gateway（Lambda がインターネットへアクセスするため）
   # AZ 整合注意: NATGateway は PublicSubnetId（AZ a = index 0）に配置。
   #   Lambda も PrivateSubnet1Id（同じ AZ a = index 0）を使用するためクロスAZ通信は発生しない。
-  #   将来別 AZ のサブネットを追加する場合はその AZ の PublicSubnet に別第 NAT を追加すること。
+  #   将来別 AZ のサブネットを追加する場合はその AZ の PublicSubnet に別の NAT を追加すること。
   # ----------------------------------------------------------
   NATElasticIP:
     Type: AWS::EC2::EIP
