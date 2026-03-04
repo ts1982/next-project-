@@ -38,13 +38,31 @@ Resources:
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
-              # RDS start/stop
+              # RDS start/stop/delete/restore
               - Effect: Allow
                 Action:
                   - rds:StartDBInstance
                   - rds:StopDBInstance
+                  - rds:DeleteDBInstance
                   - rds:DescribeDBInstances
+                  - rds:RestoreDBInstanceFromDBSnapshot
+                  - rds:ModifyDBInstance
+                  - rds:AddTagsToResource
                 Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${ProjectName}-db"
+              # RDS snapshots
+              - Effect: Allow
+                Action:
+                  - rds:CreateDBSnapshot
+                  - rds:DeleteDBSnapshot
+                  - rds:DescribeDBSnapshots
+                Resource:
+                  - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:${ProjectName}-*"
+                  - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${ProjectName}-db"
+              # RDS subnet group (required for RestoreDBInstanceFromDBSnapshot)
+              - Effect: Allow
+                Action:
+                  - rds:DescribeDBSubnetGroups
+                Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:subgrp:${ProjectName}-*"
               # CloudFormation manage edge stack
               - Effect: Allow
                 Action:
@@ -68,14 +86,14 @@ Resources:
                   ArnLike:
                     ecs:cluster: !ImportValue
                       Fn::Sub: "${ProjectName}-ECSClusterArn"
-              # IAM PassRole (for ECS tasks created by CFn + Scheduler)
+              # IAM PassRole (for ECS tasks + Lambda created by CFn)
               - Effect: Allow
                 Action: iam:PassRole
                 Resource:
                   - !ImportValue
                     Fn::Sub: "${ProjectName}-ECSTaskExecRoleArn"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-ecs-task-role"
-                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-eventbridge-ecs-role"
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-notification-lambda-role"
                   - !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-scheduler-role"
               # ELB (for CFn to create/delete ALB, TG, Listeners)
               - Effect: Allow
@@ -97,12 +115,19 @@ Resources:
                 Action:
                   - route53:GetChange
                 Resource: "arn:aws:route53:::change/*"
-              # EC2 (SG / Subnet / VPC lookups by CFn + ALB creation)
+              # EC2 (SG / Subnet / VPC lookups + NAT GW + EIP by CFn)
               - Effect: Allow
                 Action:
                   - ec2:Describe*
                   - ec2:CreateNetworkInterface
                   - ec2:DeleteNetworkInterface
+                  - ec2:AllocateAddress
+                  - ec2:ReleaseAddress
+                  - ec2:CreateNatGateway
+                  - ec2:DeleteNatGateway
+                  - ec2:CreateRoute
+                  - ec2:DeleteRoute
+                  - ec2:CreateTags
                 Resource: "*"
               # IAM CreateServiceLinkedRole (for first-time ALB creation)
               - Effect: Allow
@@ -118,32 +143,25 @@ Resources:
                   - scheduler:DeleteSchedule
                   - scheduler:GetSchedule
                 Resource: !Sub "arn:aws:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${ProjectName}-auto-stop"
-              # EventBridge Rules (enable/disable cron rule — created by edge stack)
+              # Lambda management (for CFn to create/delete notification Lambda in edge stack)
               - Effect: Allow
                 Action:
-                  - events:EnableRule
-                  - events:DisableRule
-                  - events:PutRule
-                  - events:PutTargets
-                  - events:RemoveTargets
-                  - events:DeleteRule
-                  - events:DescribeRule
-                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/${ProjectName}-cron-rule"
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:ListTags
+                Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-notification-delivery"
               # S3 GetObject for edge template
               - Effect: Allow
                 Action: s3:GetObject
                 Resource: "*"
-              # IAM for CFn to manage roles in edge stack
-              - Effect: Allow
-                Action:
-                  - iam:CreateRole
-                  - iam:DeleteRole
-                  - iam:PutRolePolicy
-                  - iam:DeleteRolePolicy
-                  - iam:GetRole
-                  - iam:AttachRolePolicy
-                  - iam:DetachRolePolicy
-                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-eventbridge-ecs-role"
 
   # ----------------------------------------------------------
   # Scheduler Role (EventBridge Scheduler → Lambda invoke)
@@ -193,6 +211,10 @@ Resources:
           AUTO_STOP_HOURS: !Ref AutoStopHours
           STOP_LAMBDA_ARN: !GetAtt StopLambda.Arn
           SCHEDULER_ROLE_ARN: !GetAtt SchedulerRole.Arn
+          RDS_SECURITY_GROUP_ID: !ImportValue
+            Fn::Sub: "${ProjectName}-RDSSecurityGroupId"
+          DB_SUBNET_GROUP_NAME: !Sub "${ProjectName}-db-subnet-group"
+          # SNAPSHOT_ID 不要: start.py はプレフィックス検索で最新スナップショットを動的に取得する
 
   # ----------------------------------------------------------
   # Stop Lambda
@@ -214,6 +236,7 @@ Resources:
           PROJECT_NAME: !Ref ProjectName
           RDS_INSTANCE_ID: !ImportValue
             Fn::Sub: "${ProjectName}-RDSInstanceId"
+          # SNAPSHOT_ID 不要: stop.py は実行時にタイムスタンプ付きスナップショット名を生成する
 
   # Permission for EventBridge Scheduler to invoke stop Lambda
   StopLambdaSchedulerPermission:

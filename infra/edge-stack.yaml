@@ -244,65 +244,78 @@ Resources:
         MaximumPercent: 200
 
   # ----------------------------------------------------------
-  # EventBridge Rule for Cron (5-min interval)
+  # NAT Gateway（Lambda がインターネットへアクセスするため）
+  # AZ 整合注意: NATGateway は PublicSubnetId（AZ a = index 0）に配置。
+  #   Lambda も PrivateSubnet1Id（同じ AZ a = index 0）を使用するためクロスAZ通信は発生しない。
+  #   将来別 AZ のサブネットを追加する場合はその AZ の PublicSubnet に別の NAT を追加すること。
   # ----------------------------------------------------------
-  CronScheduleRule:
-    Type: AWS::Events::Rule
+  NATElasticIP:
+    Type: AWS::EC2::EIP
     Properties:
-      Name: !Sub "${ProjectName}-cron-rule"
-      ScheduleExpression: "rate(5 minutes)"
-      State: ENABLED
-      Targets:
-        - Id: CronRunTask
-          Arn: !ImportValue
-            Fn::Sub: "${ProjectName}-ECSClusterArn"
-          RoleArn: !GetAtt EventBridgeECSRole.Arn
-          EcsParameters:
-            # リビジョン付き ARN を使用。bare ARN では IAM ポリシー評価時に :* パターンと不一致になり RunTask が失敗する
-            TaskDefinitionArn: !ImportValue
-              Fn::Sub: "${ProjectName}-CronTaskDefArn"
-            LaunchType: FARGATE
-            NetworkConfiguration:
-              AwsVpcConfiguration:
-                AssignPublicIp: ENABLED
-                Subnets:
-                  - !ImportValue
-                    Fn::Sub: "${ProjectName}-PublicSubnetId"
-                SecurityGroups:
-                  - !ImportValue
-                    Fn::Sub: "${ProjectName}-FargateSecurityGroupId"
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-nat-eip"
 
-  EventBridgeECSRole:
-    Type: AWS::IAM::Role
+  NATGateway:
+    Type: AWS::EC2::NatGateway
     Properties:
-      RoleName: !Sub "${ProjectName}-eventbridge-ecs-role"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: events.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: RunECSTask
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - ecs:RunTask
-                Resource:
-                  # リビジョン付き ARN (例: next-project-cron:3) にマッチさせる
-                  - !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron:*"
-                  # bare ARN (リビジョンなし) でリクエストされた場合も許可
-                  - !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ProjectName}-cron"
-              - Effect: Allow
-                Action:
-                  - iam:PassRole
-                Resource: "*"
-                Condition:
-                  StringLike:
-                    iam:PassedToService: ecs-tasks.amazonaws.com
+      AllocationId: !GetAtt NATElasticIP.AllocationId
+      SubnetId: !ImportValue
+        Fn::Sub: "${ProjectName}-PublicSubnetId"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-nat-gw"
+
+  NATRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !ImportValue
+        Fn::Sub: "${ProjectName}-PrivateRouteTableId"
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NATGateway
+
+  # ----------------------------------------------------------
+  # Notification Delivery Lambda（予約通知を配信する）
+  # ----------------------------------------------------------
+  NotificationDeliveryLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-notification-delivery"
+      PackageType: Image
+      Code:
+        ImageUri: !Sub
+          - "${ECRUri}:latest"
+          - ECRUri: !ImportValue
+              Fn::Sub: "${ProjectName}-NotificationLambdaECRUri"
+      Role: !ImportValue
+        Fn::Sub: "${ProjectName}-NotificationLambdaRoleArn"
+      Timeout: 300
+      MemorySize: 256
+      VpcConfig:
+        SubnetIds:
+          - !ImportValue
+            Fn::Sub: "${ProjectName}-PrivateSubnet1Id"
+        SecurityGroupIds:
+          - !ImportValue
+            Fn::Sub: "${ProjectName}-LambdaSecurityGroupId"
+      Environment:
+        Variables:
+          DATABASE_URL: !Sub "{{resolve:ssm:/${ProjectName}/DATABASE_URL}}"
+          USER_APP_URL: !Sub "{{resolve:ssm:/${ProjectName}/USER_APP_URL}}"
+          INTERNAL_API_SECRET: !Sub "{{resolve:ssm:/${ProjectName}/INTERNAL_API_SECRET}}"
+      LoggingConfig:
+        LogGroup: !Sub "/lambda/${ProjectName}/notification-delivery"
+
+  NotificationDeliveryLambdaPermissionForScheduler:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NotificationDeliveryLambda
+      Action: lambda:InvokeFunction
+      Principal: scheduler.amazonaws.com
+      SourceArn: !Sub "arn:aws:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/notification-*"
+  # CronScheduleRule / EventBridgeECSRole は削除
+  # （EventBridge Scheduler + Lambda 方式へ移行）
 
 # ============================================================
 # Outputs

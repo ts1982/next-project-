@@ -200,16 +200,33 @@ Resources:
         - Key: Name
           Value: !Sub "${ProjectName}-fargate-sg"
 
+  # Lambda が VPC 内から直接 RDS へアクセスするための SG
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Lambda SG - notification delivery"
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: "0.0.0.0/0"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}-lambda-sg"
+
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "RDS SG - from Fargate only"
+      GroupDescription: "RDS SG - from Fargate and Lambda"
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5432
           ToPort: 5432
           SourceSecurityGroupId: !Ref FargateSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
       Tags:
         - Key: Name
           Value: !Sub "${ProjectName}-rds-sg"
@@ -277,10 +294,10 @@ Resources:
             ]
           }
 
-  CronECR:
+  NotificationLambdaECR:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: !Sub "${ProjectName}/cron"
+      RepositoryName: !Sub "${ProjectName}/notification-lambda"
       ImageScanningConfiguration:
         ScanOnPush: true
       LifecyclePolicy:
@@ -326,10 +343,10 @@ Resources:
       LogGroupName: !Sub "/ecs/${ProjectName}/user"
       RetentionInDays: 7
 
-  CronLogGroup:
+  NotificationLambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/ecs/${ProjectName}/cron"
+      LogGroupName: !Sub "/lambda/${ProjectName}/notification-delivery"
       RetentionInDays: 7
 
   # ----------------------------------------------------------
@@ -371,6 +388,74 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EventBridgeSchedulerAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - scheduler:CreateSchedule
+                  - scheduler:DeleteSchedule
+                  - scheduler:GetSchedule
+                  - scheduler:UpdateSchedule
+                Resource:
+                  - !Sub "arn:aws:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/notification-*"
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource: !GetAtt SchedulerExecutionRole.Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: scheduler.amazonaws.com
+
+  # IAM — EventBridge Scheduler → Lambda 実行ロール
+  SchedulerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-scheduler-exec-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: scheduler.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambda
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function/${ProjectName}-notification-delivery"
+
+  # IAM — Notification Lambda 実行ロール
+  NotificationLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-notification-lambda-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: SSMParameterAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/*"
 
   # ----------------------------------------------------------
   # RDS (PostgreSQL, Single-AZ, db.t4g.micro)
@@ -378,6 +463,7 @@ Resources:
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
+      DBSubnetGroupName: !Sub "${ProjectName}-db-subnet-group"
       DBSubnetGroupDescription: "Private subnets for RDS"
       SubnetIds:
         - !Ref PrivateSubnet1
@@ -440,6 +526,12 @@ Resources:
               Value: "3000"
             - Name: HOSTNAME
               Value: "0.0.0.0"
+            - Name: NOTIFICATION_LAMBDA_ARN
+              Value: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function/${ProjectName}-notification-delivery"
+            - Name: SCHEDULER_EXECUTION_ROLE_ARN
+              Value: !GetAtt SchedulerExecutionRole.Arn
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
           Secrets:
             - Name: DATABASE_URL
               ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/DATABASE_URL"
@@ -447,8 +539,6 @@ Resources:
               ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/ADMIN_AUTH_SECRET"
             - Name: AUTH_URL
               ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/ADMIN_AUTH_URL"
-            - Name: CRON_SECRET
-              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/CRON_SECRET"
             - Name: USER_APP_URL
               ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/USER_APP_URL"
             - Name: INTERNAL_API_SECRET
@@ -526,34 +616,7 @@ Resources:
             Retries: 3
             StartPeriod: 60
 
-  CronTaskDefinition:
-    Type: AWS::ECS::TaskDefinition
-    Properties:
-      Family: !Sub "${ProjectName}-cron"
-      Cpu: "256"
-      Memory: "512"
-      NetworkMode: awsvpc
-      RequiresCompatibilities: [FARGATE]
-      RuntimePlatform:
-        CpuArchitecture: ARM64
-        OperatingSystemFamily: LINUX
-      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
-      TaskRoleArn: !GetAtt ECSTaskRole.Arn
-      ContainerDefinitions:
-        - Name: cron
-          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ProjectName}/cron:latest"
-          Secrets:
-            - Name: CRON_SECRET
-              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/CRON_SECRET"
-            - Name: ADMIN_URL
-              ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/ADMIN_URL"
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              awslogs-group: !Ref CronLogGroup
-              awslogs-region: !Ref AWS::Region
-              awslogs-stream-prefix: cron
-          Essential: true
+  # CronTaskDefinition は削除（EventBridge Scheduler + Lambda 方式に移行）
 
 # ============================================================
 # Outputs
@@ -599,10 +662,22 @@ Outputs:
     Value: !Ref UserTaskDefinition
     Export:
       Name: !Sub "${ProjectName}-UserTaskDefArn"
-  CronTaskDefinitionArn:
-    Value: !Ref CronTaskDefinition
+  NotificationLambdaECRUri:
+    Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ProjectName}/notification-lambda"
     Export:
-      Name: !Sub "${ProjectName}-CronTaskDefArn"
+      Name: !Sub "${ProjectName}-NotificationLambdaECRUri"
+  NotificationLambdaRoleArn:
+    Value: !GetAtt NotificationLambdaRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-NotificationLambdaRoleArn"
+  SchedulerExecutionRoleArn:
+    Value: !GetAtt SchedulerExecutionRole.Arn
+    Export:
+      Name: !Sub "${ProjectName}-SchedulerExecutionRoleArn"
+  LambdaSecurityGroupId:
+    Value: !Ref LambdaSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-LambdaSecurityGroupId"
   ECSTaskExecutionRoleArn:
     Value: !GetAtt ECSTaskExecutionRole.Arn
     Export:
@@ -627,3 +702,15 @@ Outputs:
     Value: !Ref RDSInstance
     Export:
       Name: !Sub "${ProjectName}-RDSInstanceId"
+  PrivateRouteTableId:
+    Value: !Ref PrivateRouteTable
+    Export:
+      Name: !Sub "${ProjectName}-PrivateRouteTableId"
+  RDSSecurityGroupId:
+    Value: !Ref RDSSecurityGroup
+    Export:
+      Name: !Sub "${ProjectName}-RDSSecurityGroupId"
+  DBSubnetGroupName:
+    Value: !Sub "${ProjectName}-db-subnet-group"
+    Export:
+      Name: !Sub "${ProjectName}-DBSubnetGroupName"

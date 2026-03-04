@@ -1,13 +1,23 @@
 """
-start.py — RDS 起動 → Edge Stack 作成 → 5 時間後 auto-stop スケジュール作成
+start.py — RDS 復元/起動 → Edge Stack 作成 → 5 時間後 auto-stop スケジュール作成
+
+RDS インスタンスが存在しない場合はスナップショットから復元する。
+(stop.py で RDS を完全削除しているため、通常は復元フローになる)
+
+スナップショット検索:
+  stop.py はタイムスタンプ付きの名前でスナップショットを作成するため、
+  このスクリプトは「{PROJECT_NAME}-final-snap-」プレフィックスの最新 manual スナップショットを
+  動的に検索して復元する（SNAPSHOT_ID 環境変数は不要）。
 
 環境変数:
-  PROJECT_NAME      : CloudFormation スタック名プレフィックス (default: next-project)
-  RDS_INSTANCE_ID   : RDS インスタンス識別子
-  EDGE_TEMPLATE_URL : Edge Stack の S3 テンプレート URL
-  AUTO_STOP_HOURS   : 自動停止までの時間 (default: 5)
-  STOP_LAMBDA_ARN   : 停止 Lambda の ARN
-  SCHEDULER_ROLE_ARN: EventBridge Scheduler が Lambda を呼ぶ際のロール ARN
+  PROJECT_NAME          : CloudFormation スタック名プレフィックス (default: next-project)
+  RDS_INSTANCE_ID       : RDS インスタンス識別子
+  EDGE_TEMPLATE_URL     : Edge Stack の S3 テンプレート URL
+  AUTO_STOP_HOURS       : 自動停止までの時間 (default: 5)
+  STOP_LAMBDA_ARN       : 停止 Lambda の ARN
+  SCHEDULER_ROLE_ARN    : EventBridge Scheduler が Lambda を呼ぶ際のロール ARN
+  RDS_SECURITY_GROUP_ID : RDS セキュリティグループ ID
+  DB_SUBNET_GROUP_NAME  : DB サブネットグループ名
 """
 
 import json
@@ -23,6 +33,10 @@ EDGE_TEMPLATE_URL = os.environ["EDGE_TEMPLATE_URL"]
 AUTO_STOP_HOURS = int(os.environ.get("AUTO_STOP_HOURS", "5"))
 STOP_LAMBDA_ARN = os.environ["STOP_LAMBDA_ARN"]
 SCHEDULER_ROLE_ARN = os.environ["SCHEDULER_ROLE_ARN"]
+RDS_SECURITY_GROUP_ID = os.environ["RDS_SECURITY_GROUP_ID"]
+DB_SUBNET_GROUP_NAME = os.environ["DB_SUBNET_GROUP_NAME"]
+
+SNAPSHOT_PREFIX = f"{PROJECT_NAME}-final-snap"
 
 rds = boto3.client("rds")
 cfn = boto3.client("cloudformation")
@@ -35,8 +49,8 @@ SCHEDULE_NAME = f"{PROJECT_NAME}-auto-stop"
 def handler(event, context):
     print("[start] Starting environment...")
 
-    # 1) RDS 起動
-    start_rds()
+    # 1) RDS 起動 or スナップショットから復元
+    ensure_rds()
 
     # 2) RDS available 待機 (通常 5-10 分)
     wait_rds_available()
@@ -61,11 +75,11 @@ def handler(event, context):
 
 
 # ---- RDS ----
-def start_rds():
+def ensure_rds():
+    """RDS インスタンスが存在すれば起動、なければスナップショットから復元する。"""
     try:
-        status = rds.describe_db_instances(
-            DBInstanceIdentifier=RDS_INSTANCE_ID
-        )["DBInstances"][0]["DBInstanceStatus"]
+        resp = rds.describe_db_instances(DBInstanceIdentifier=RDS_INSTANCE_ID)
+        status = resp["DBInstances"][0]["DBInstanceStatus"]
         print(f"[rds] Current status: {status}")
         if status == "stopped":
             rds.start_db_instance(DBInstanceIdentifier=RDS_INSTANCE_ID)
@@ -73,10 +87,51 @@ def start_rds():
         elif status == "available":
             print("[rds] Already running")
         else:
-            print(f"[rds] Unexpected status: {status}, proceeding anyway")
-    except Exception as e:
-        print(f"[rds] Error: {e}")
-        raise
+            print(f"[rds] Status: {status}, waiting...")
+    except rds.exceptions.DBInstanceNotFoundFault:
+        print("[rds] Instance not found — restoring from snapshot...")
+        restore_rds_from_snapshot()
+
+
+def get_latest_snapshot_id() -> str:
+    """SNAPSHOT_PREFIX に一致する最新の manual スナップショットを返す。"""
+    resp = rds.describe_db_snapshots(
+        DBInstanceIdentifier=RDS_INSTANCE_ID,
+        SnapshotType="manual",
+    )
+    snapshots = [
+        s for s in resp["DBSnapshots"]
+        if s["DBSnapshotIdentifier"].startswith(SNAPSHOT_PREFIX)
+        and s["Status"] == "available"
+    ]
+    if not snapshots:
+        raise ValueError(
+            f"[rds] No available snapshot found with prefix '{SNAPSHOT_PREFIX}'. "
+            "Cannot restore."
+        )
+    snapshots.sort(key=lambda s: s["SnapshotCreateTime"], reverse=True)
+    latest = snapshots[0]["DBSnapshotIdentifier"]
+    print(f"[rds] Using snapshot: {latest}")
+    return latest
+
+
+def restore_rds_from_snapshot():
+    """最新のファイナルスナップショットから RDS インスタンスを復元する。
+    VpcSecurityGroupIds を restore 時に指定することで、
+    available 後の modify が不要になり一時的なデフォルト SG 適用を回避する。
+    """
+    snapshot_id = get_latest_snapshot_id()
+    rds.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier=RDS_INSTANCE_ID,
+        DBSnapshotIdentifier=snapshot_id,
+        DBInstanceClass="db.t4g.micro",
+        DBSubnetGroupName=DB_SUBNET_GROUP_NAME,
+        VpcSecurityGroupIds=[RDS_SECURITY_GROUP_ID],
+        PubliclyAccessible=False,
+        MultiAZ=False,
+        Tags=[{"Key": "Name", "Value": f"{PROJECT_NAME}-db"}],
+    )
+    print("[rds] Restore requested")
 
 
 def wait_rds_available():
@@ -84,7 +139,7 @@ def wait_rds_available():
     waiter = rds.get_waiter("db_instance_available")
     waiter.wait(
         DBInstanceIdentifier=RDS_INSTANCE_ID,
-        WaiterConfig={"Delay": 30, "MaxAttempts": 24},  # max ~12 min
+        WaiterConfig={"Delay": 30, "MaxAttempts": 30},  # max ~15 min
     )
     print("[rds] Available!")
 
