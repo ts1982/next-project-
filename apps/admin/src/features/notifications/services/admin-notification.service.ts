@@ -137,11 +137,34 @@ export async function createAdminNotification(
     notification.id,
     scheduledAtUTC,
   );
-  await prisma.adminNotification.update({
-    where: { id: notification.id },
-    data: { schedulerName },
-  });
 
+  // Scheduler 作成成功後の DB 更新で失敗した場合に備え、補償処理を入れる
+  try {
+    await prisma.adminNotification.update({
+      where: { id: notification.id },
+      data: { schedulerName },
+    });
+  } catch (error) {
+    // DB 更新に失敗した場合は、作成済みのスケジュールを削除して整合性を保つ
+    const schedulerClient = new SchedulerClient({});
+    try {
+      await schedulerClient.send(
+        new DeleteScheduleCommand({
+          Name: schedulerName,
+          // registerScheduler と同じグループを利用することを想定
+          GroupName: SCHEDULER_GROUP_NAME,
+        }),
+      );
+    } catch (deleteError) {
+      // すでに削除済みの場合は無視し、それ以外はログだけ残す
+      if (!(deleteError instanceof ResourceNotFoundException)) {
+        // eslint-disable-next-line no-console
+        console.error("Failed to rollback scheduler creation", deleteError);
+      }
+    }
+
+    throw error;
+  }
   return {
     notification: { ...notification, schedulerName },
   };
