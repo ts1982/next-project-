@@ -239,41 +239,30 @@ Resources:
         - ContainerName: user
           ContainerPort: 3001
           TargetGroupArn: !Ref UserTargetGroup
+      ServiceRegistries:
+        - RegistryArn: !GetAtt UserServiceDiscovery.Arn
+      HealthCheckGracePeriodSeconds: 60
       DeploymentConfiguration:
         MinimumHealthyPercent: 0
         MaximumPercent: 200
 
   # ----------------------------------------------------------
-  # NAT Gateway（Lambda がインターネットへアクセスするため）
-  # AZ 整合注意: NATGateway は PublicSubnetId（AZ a = index 0）に配置。
-  #   Lambda も PrivateSubnet1Id（同じ AZ a = index 0）を使用するためクロスAZ通信は発生しない。
-  #   将来別 AZ のサブネットを追加する場合はその AZ の PublicSubnet に別の NAT を追加すること。
+  # Cloud Map — User サービスディスカバリ
+  # Lambda が VPC 内部 DNS で User App に直接アクセスするため。
+  # NAT Gateway（~$45/月）の代替として Cloud Map（~$0.1/月）を使用。
   # ----------------------------------------------------------
-  NATElasticIP:
-    Type: AWS::EC2::EIP
+  UserServiceDiscovery:
+    Type: AWS::ServiceDiscovery::Service
     Properties:
-      Domain: vpc
-      Tags:
-        - Key: Name
-          Value: !Sub "${ProjectName}-nat-eip"
-
-  NATGateway:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NATElasticIP.AllocationId
-      SubnetId: !ImportValue
-        Fn::Sub: "${ProjectName}-PublicSubnetId"
-      Tags:
-        - Key: Name
-          Value: !Sub "${ProjectName}-nat-gw"
-
-  NATRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !ImportValue
-        Fn::Sub: "${ProjectName}-PrivateRouteTableId"
-      DestinationCidrBlock: "0.0.0.0/0"
-      NatGatewayId: !Ref NATGateway
+      Name: user
+      NamespaceId: !ImportValue
+        Fn::Sub: "${ProjectName}-ServiceDiscoveryNamespaceId"
+      DnsConfig:
+        DnsRecords:
+          - Type: A
+            TTL: 10
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
 
   # ----------------------------------------------------------
   # Notification Delivery Lambda（予約通知を配信する）
@@ -301,9 +290,9 @@ Resources:
             Fn::Sub: "${ProjectName}-LambdaSecurityGroupId"
       Environment:
         Variables:
-          DATABASE_URL: !Sub "{{resolve:ssm:/${ProjectName}/DATABASE_URL}}"
-          USER_APP_URL: !Sub "{{resolve:ssm:/${ProjectName}/USER_APP_URL}}"
-          INTERNAL_API_SECRET: !Sub "{{resolve:ssm:/${ProjectName}/INTERNAL_API_SECRET}}"
+          DATABASE_URL: !Sub "{{resolve:ssm-secure:/${ProjectName}/DATABASE_URL}}"
+          USER_APP_URL: !Sub "http://user.${ProjectName}.local:3001"
+          INTERNAL_API_SECRET: !Sub "{{resolve:ssm-secure:/${ProjectName}/INTERNAL_API_SECRET}}"
       LoggingConfig:
         LogGroup: !Sub "/lambda/${ProjectName}/notification-delivery"
 

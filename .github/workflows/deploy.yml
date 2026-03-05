@@ -14,7 +14,6 @@ on:
           - all
           - admin
           - user
-          - cron
 
 env:
   AWS_REGION: ap-northeast-1
@@ -32,7 +31,7 @@ jobs:
     outputs:
       admin_image: ${{ steps.meta.outputs.admin_image }}
       user_image: ${{ steps.meta.outputs.user_image }}
-      cron_image: ${{ steps.meta.outputs.cron_image }}
+      notification_lambda_image: ${{ steps.meta.outputs.notification_lambda_image }}
 
     steps:
       - name: Checkout
@@ -56,7 +55,7 @@ jobs:
           SHA=${GITHUB_SHA::8}
           echo "admin_image=${REGISTRY}/${PROJECT_NAME}/admin:${SHA}" >> "$GITHUB_OUTPUT"
           echo "user_image=${REGISTRY}/${PROJECT_NAME}/user:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "cron_image=${REGISTRY}/${PROJECT_NAME}/cron:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "notification_lambda_image=${REGISTRY}/${PROJECT_NAME}/notification-lambda:${SHA}" >> "$GITHUB_OUTPUT"
 
       # ECS Fargate のタスク定義が ARM64 (Graviton) のため QEMU + Buildx でクロスビルド
       - name: Set up QEMU
@@ -97,18 +96,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # ---- cron ----
-      - name: Build & push cron
-        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'cron' || github.event_name == 'push'
+      # ---- notification-lambda ----
+      - name: Build & push notification-lambda
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.cron
-          platforms: linux/arm64
+          file: Dockerfile.notification-lambda
+          platforms: linux/amd64
           push: true
           tags: |
-            ${{ steps.meta.outputs.cron_image }}
-            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/cron:latest
+            ${{ steps.meta.outputs.notification_lambda_image }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/notification-lambda:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -123,6 +121,9 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -147,13 +148,14 @@ jobs:
             '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
 
-      - name: Update cron task definition
-        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'cron' || github.event_name == 'push'
+      - name: Deploy edge-stack (create or update)
         run: |
-          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${PROJECT_NAME}-cron --query taskDefinition)
-          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ needs.build-and-push.outputs.cron_image }}" \
-            '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
-          aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
+          aws cloudformation deploy \
+            --stack-name ${PROJECT_NAME}-edge \
+            --template-file infra/edge-stack.yaml \
+            --parameter-overrides ProjectName=${PROJECT_NAME} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset
 
       - name: Force new deployment (if services are running)
         run: |

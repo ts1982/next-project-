@@ -200,6 +200,16 @@ Resources:
         - Key: Name
           Value: !Sub "${ProjectName}-fargate-sg"
 
+  # Lambda → Fargate (port 3001) — Cloud Map 経由のブロードキャスト用
+  FargateLambdaIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref FargateSecurityGroup
+      IpProtocol: tcp
+      FromPort: 3001
+      ToPort: 3001
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
   # Lambda が VPC 内から直接 RDS へアクセスするための SG
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -216,20 +226,26 @@ Resources:
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "RDS SG - from Fargate and Lambda"
+      GroupDescription: "RDS SG - from Fargate only"
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5432
           ToPort: 5432
           SourceSecurityGroupId: !Ref FargateSecurityGroup
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          SourceSecurityGroupId: !Ref LambdaSecurityGroup
       Tags:
         - Key: Name
           Value: !Sub "${ProjectName}-rds-sg"
+
+  # Lambda → RDS (port 5432)
+  RDSLambdaIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref RDSSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref LambdaSecurityGroup
 
   # ----------------------------------------------------------
   # ACM Certificate (wildcard)
@@ -430,7 +446,7 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                 Resource:
-                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function/${ProjectName}-notification-delivery"
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-notification-delivery"
 
   # IAM — Notification Lambda 実行ロール
   NotificationLambdaRole:
@@ -458,12 +474,20 @@ Resources:
                 Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/*"
 
   # ----------------------------------------------------------
+  # Cloud Map — サービスディスカバリ用プライベート DNS 名前空間
+  # ----------------------------------------------------------
+  ServiceDiscoveryNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: !Sub "${ProjectName}.local"
+      Vpc: !Ref VPC
+
+  # ----------------------------------------------------------
   # RDS (PostgreSQL, Single-AZ, db.t4g.micro)
   # ----------------------------------------------------------
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupName: !Sub "${ProjectName}-db-subnet-group"
       DBSubnetGroupDescription: "Private subnets for RDS"
       SubnetIds:
         - !Ref PrivateSubnet1
@@ -527,7 +551,7 @@ Resources:
             - Name: HOSTNAME
               Value: "0.0.0.0"
             - Name: NOTIFICATION_LAMBDA_ARN
-              Value: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function/${ProjectName}-notification-delivery"
+              Value: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${ProjectName}-notification-delivery"
             - Name: SCHEDULER_EXECUTION_ROLE_ARN
               Value: !GetAtt SchedulerExecutionRole.Arn
             - Name: AWS_DEFAULT_REGION
@@ -711,6 +735,14 @@ Outputs:
     Export:
       Name: !Sub "${ProjectName}-RDSSecurityGroupId"
   DBSubnetGroupName:
-    Value: !Sub "${ProjectName}-db-subnet-group"
+    Value: !Ref DBSubnetGroup
     Export:
       Name: !Sub "${ProjectName}-DBSubnetGroupName"
+  ServiceDiscoveryNamespaceId:
+    Value: !GetAtt ServiceDiscoveryNamespace.Id
+    Export:
+      Name: !Sub "${ProjectName}-ServiceDiscoveryNamespaceId"
+  ServiceDiscoveryNamespaceArn:
+    Value: !GetAtt ServiceDiscoveryNamespace.Arn
+    Export:
+      Name: !Sub "${ProjectName}-ServiceDiscoveryNamespaceArn"
