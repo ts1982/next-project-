@@ -290,9 +290,8 @@ Resources:
             Fn::Sub: "${ProjectName}-LambdaSecurityGroupId"
       Environment:
         Variables:
-          DATABASE_URL: !Sub "{{resolve:ssm-secure:/${ProjectName}/DATABASE_URL}}"
+          PROJECT_NAME: !Ref ProjectName
           USER_APP_URL: !Sub "http://user.${ProjectName}.local:3001"
-          INTERNAL_API_SECRET: !Sub "{{resolve:ssm-secure:/${ProjectName}/INTERNAL_API_SECRET}}"
       LoggingConfig:
         LogGroup: !Sub "/lambda/${ProjectName}/notification-delivery"
 

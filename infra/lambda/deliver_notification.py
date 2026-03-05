@@ -18,8 +18,18 @@ import urllib.request
 import uuid
 from datetime import datetime, timezone
 
+import boto3
 import psycopg2
 import psycopg2.extras
+
+_ssm_cache: dict = {}
+
+
+def _get_ssm(name: str) -> str:
+    if name not in _ssm_cache:
+        ssm = boto3.client("ssm")
+        _ssm_cache[name] = ssm.get_parameter(Name=name, WithDecryption=True)["Parameter"]["Value"]
+    return _ssm_cache[name]
 
 
 def handler(event, context):
@@ -27,9 +37,10 @@ def handler(event, context):
     if not notification_id:
         raise ValueError("notificationId is required in event payload")
 
-    database_url = os.environ["DATABASE_URL"]
+    project_name = os.environ.get("PROJECT_NAME", "next-project")
+    database_url = _get_ssm(f"/{project_name}/DATABASE_URL")
     user_app_url = os.environ.get("USER_APP_URL", "http://localhost:3001")
-    internal_api_secret = os.environ["INTERNAL_API_SECRET"]
+    internal_api_secret = _get_ssm(f"/{project_name}/INTERNAL_API_SECRET")
 
     conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
     try:
