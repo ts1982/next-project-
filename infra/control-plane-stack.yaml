@@ -63,6 +63,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - rds:DescribeDBSubnetGroups
+                  - rds:RestoreDBInstanceFromDBSnapshot
                 Resource: !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:subgrp:${ProjectName}-*"
               # CloudFormation manage edge stack
               - Effect: Allow
@@ -71,6 +72,8 @@ Resources:
                   - cloudformation:UpdateStack
                   - cloudformation:DeleteStack
                   - cloudformation:DescribeStacks
+                  - cloudformation:ListStackResources
+                  - cloudformation:DescribeStackEvents
                 Resource: !Sub "arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${ProjectName}-edge/*"
               # ECS (for CloudFormation to create/update/delete services)
               - Effect: Allow
@@ -230,7 +233,8 @@ Resources:
           SCHEDULER_ROLE_ARN: !GetAtt SchedulerRole.Arn
           RDS_SECURITY_GROUP_ID: !ImportValue
             Fn::Sub: "${ProjectName}-RDSSecurityGroupId"
-          DB_SUBNET_GROUP_NAME: !Sub "${ProjectName}-db-subnet-group"
+          DB_SUBNET_GROUP_NAME: !ImportValue
+            Fn::Sub: "${ProjectName}-DBSubnetGroupName"
           # SNAPSHOT_ID 不要: start.py はプレフィックス検索で最新スナップショットを動的に取得する
 
   # ----------------------------------------------------------
