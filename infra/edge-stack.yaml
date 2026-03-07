@@ -265,6 +265,36 @@ Resources:
         FailureThreshold: 1
 
   # ----------------------------------------------------------
+  # VPC Endpoint for SSM (Lambda が Private Subnet から SSM API にアクセスするため)
+  # ----------------------------------------------------------
+  SSMVPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "SSM VPC Endpoint SG - HTTPS from Lambda"
+      VpcId: !ImportValue
+        Fn::Sub: "${ProjectName}-VPCId"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !ImportValue
+            Fn::Sub: "${ProjectName}-LambdaSecurityGroupId"
+
+  SSMVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !ImportValue
+        Fn::Sub: "${ProjectName}-VPCId"
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ssm"
+      VpcEndpointType: Interface
+      SubnetIds:
+        - !ImportValue
+          Fn::Sub: "${ProjectName}-PrivateSubnet1Id"
+      SecurityGroupIds:
+        - !Ref SSMVPCEndpointSecurityGroup
+      PrivateDnsEnabled: true
+
+  # ----------------------------------------------------------
   # Notification Delivery Lambda（予約通知を配信する）
   # ----------------------------------------------------------
   NotificationDeliveryLambda:

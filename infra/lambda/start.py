@@ -144,19 +144,41 @@ def wait_rds_available():
     print("[rds] Available!")
 
 
+# 失敗状態のスタック（削除→再作成が必要）
+_FAILED_STATUSES = {"ROLLBACK_COMPLETE", "CREATE_FAILED", "ROLLBACK_FAILED", "DELETE_FAILED"}
+
+
 # ---- Edge Stack (async — does not wait for completion) ----
 def create_edge_stack():
     try:
-        cfn.describe_stacks(StackName=EDGE_STACK_NAME)
-        print(f"[cfn] Stack {EDGE_STACK_NAME} already exists, updating...")
-        cfn.update_stack(
-            StackName=EDGE_STACK_NAME,
-            TemplateURL=EDGE_TEMPLATE_URL,
-            Parameters=[
-                {"ParameterKey": "ProjectName", "ParameterValue": PROJECT_NAME},
-            ],
-            Capabilities=["CAPABILITY_NAMED_IAM"],
-        )
+        resp = cfn.describe_stacks(StackName=EDGE_STACK_NAME)
+        status = resp["Stacks"][0]["StackStatus"]
+        print(f"[cfn] Stack {EDGE_STACK_NAME} status: {status}")
+
+        if status in _FAILED_STATUSES:
+            print(f"[cfn] Stack in {status} state, deleting before recreate...")
+            cfn.delete_stack(StackName=EDGE_STACK_NAME)
+            waiter = cfn.get_waiter("stack_delete_complete")
+            waiter.wait(StackName=EDGE_STACK_NAME, WaiterConfig={"Delay": 10, "MaxAttempts": 60})
+            print(f"[cfn] Deleted failed stack, creating fresh...")
+            cfn.create_stack(
+                StackName=EDGE_STACK_NAME,
+                TemplateURL=EDGE_TEMPLATE_URL,
+                Parameters=[
+                    {"ParameterKey": "ProjectName", "ParameterValue": PROJECT_NAME},
+                ],
+                Capabilities=["CAPABILITY_NAMED_IAM"],
+            )
+        else:
+            print(f"[cfn] Updating stack {EDGE_STACK_NAME}...")
+            cfn.update_stack(
+                StackName=EDGE_STACK_NAME,
+                TemplateURL=EDGE_TEMPLATE_URL,
+                Parameters=[
+                    {"ParameterKey": "ProjectName", "ParameterValue": PROJECT_NAME},
+                ],
+                Capabilities=["CAPABILITY_NAMED_IAM"],
+            )
     except cfn.exceptions.ClientError as e:
         if "does not exist" in str(e):
             print(f"[cfn] Creating stack {EDGE_STACK_NAME}...")

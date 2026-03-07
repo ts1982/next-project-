@@ -57,12 +57,6 @@ jobs:
           echo "user_image=${REGISTRY}/${PROJECT_NAME}/user:${SHA}" >> "$GITHUB_OUTPUT"
           echo "notification_lambda_image=${REGISTRY}/${PROJECT_NAME}/notification-lambda:${SHA}" >> "$GITHUB_OUTPUT"
 
-      # ECS Fargate のタスク定義が ARM64 (Graviton) のため QEMU + Buildx でクロスビルド
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -73,7 +67,7 @@ jobs:
         with:
           context: .
           file: Dockerfile.admin
-          platforms: linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ steps.meta.outputs.admin_image }}
@@ -88,7 +82,7 @@ jobs:
         with:
           context: .
           file: Dockerfile.user
-          platforms: linux/arm64
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ steps.meta.outputs.user_image }}
@@ -181,6 +175,15 @@ jobs:
             --image-uri "${{ needs.build-and-push.outputs.notification_lambda_image }}" \
             --no-cli-pager
           echo "Lambda function code updated"
+
+      - name: Sync infra templates to S3
+        run: |
+          aws s3 cp infra/edge-stack.yaml s3://${PROJECT_NAME}-lambda-deploy/edge-stack.yaml
+          cd infra/lambda
+          zip -j /tmp/start.zip start.py
+          zip -j /tmp/stop.zip stop.py
+          aws s3 cp /tmp/start.zip s3://${PROJECT_NAME}-lambda-deploy/lambda/start.zip
+          aws s3 cp /tmp/stop.zip s3://${PROJECT_NAME}-lambda-deploy/lambda/stop.zip
 
       - name: Force new deployment (if services are running)
         run: |
