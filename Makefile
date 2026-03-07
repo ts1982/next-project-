@@ -138,6 +138,7 @@ infra-start:
 	  --function-name $(START_FN) \
 	  --payload '{}' \
 	  --cli-binary-format raw-in-base64-out \
+	  --cli-read-timeout 0 \
 	  --region $(AWS_REGION) \
 	  /tmp/infra-start-output.json > /dev/null
 	@echo "   Lambda response: $$(cat /tmp/infra-start-output.json)"
@@ -167,6 +168,7 @@ infra-stop:
 	  --function-name $(STOP_FN) \
 	  --payload '{"source":"manual"}' \
 	  --cli-binary-format raw-in-base64-out \
+	  --cli-read-timeout 0 \
 	  --region $(AWS_REGION) \
 	  /tmp/infra-stop-output.json > /dev/null
 	@echo "   Lambda response: $$(cat /tmp/infra-stop-output.json)"

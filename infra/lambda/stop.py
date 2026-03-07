@@ -68,16 +68,43 @@ def delete_auto_stop_schedule():
 
 
 # ---- Edge Stack ----
-def delete_edge_stack():
+def _get_stack_status():
+    """スタックのステータスを返す。存在しなければ None を返す。"""
     try:
-        cfn.describe_stacks(StackName=EDGE_STACK_NAME)
-        print(f"[cfn] Deleting stack {EDGE_STACK_NAME}...")
-        cfn.delete_stack(StackName=EDGE_STACK_NAME)
+        resp = cfn.describe_stacks(StackName=EDGE_STACK_NAME)
+        return resp["Stacks"][0]["StackStatus"]
     except cfn.exceptions.ClientError as e:
         if "does not exist" in str(e):
-            print(f"[cfn] Stack {EDGE_STACK_NAME} does not exist, skipping")
-        else:
-            raise
+            return None
+        raise
+
+
+def _get_failed_resources():
+    """DELETE_FAILED 状態のリソースの LogicalResourceId リストを返す。"""
+    resp = cfn.list_stack_resources(StackName=EDGE_STACK_NAME)
+    return [
+        r["LogicalResourceId"]
+        for r in resp["StackResourceSummaries"]
+        if r["ResourceStatus"] == "DELETE_FAILED"
+    ]
+
+
+def delete_edge_stack():
+    status = _get_stack_status()
+    if status is None:
+        print(f"[cfn] Stack {EDGE_STACK_NAME} does not exist, skipping")
+        return
+
+    print(f"[cfn] Stack {EDGE_STACK_NAME} status: {status}")
+
+    if status == "DELETE_FAILED":
+        # 削除失敗リソースを RetainResources に指定して強制削除
+        failed = _get_failed_resources()
+        print(f"[cfn] Retaining failed resources and retrying delete: {failed}")
+        cfn.delete_stack(StackName=EDGE_STACK_NAME, RetainResources=failed)
+    else:
+        print(f"[cfn] Deleting stack {EDGE_STACK_NAME}...")
+        cfn.delete_stack(StackName=EDGE_STACK_NAME)
 
 
 def wait_edge_stack_deleted():
@@ -96,6 +123,8 @@ def wait_edge_stack_deleted():
             print("[cfn] Stack already gone")
         elif "Max attempts exceeded" in err_msg:
             print("[cfn] WARNING: Deletion waiter timed out — proceeding anyway")
+        elif "DELETE_FAILED" in err_msg:
+            print("[cfn] WARNING: Stack deletion failed — proceeding with RDS cleanup")
         else:
             raise
 

@@ -55,6 +55,7 @@ Resources:
                   - rds:CreateDBSnapshot
                   - rds:DeleteDBSnapshot
                   - rds:DescribeDBSnapshots
+                  - rds:RestoreDBInstanceFromDBSnapshot
                 Resource:
                   - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:snapshot:${ProjectName}-*"
                   - !Sub "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${ProjectName}-db"
@@ -115,7 +116,7 @@ Resources:
                 Action:
                   - route53:GetChange
                 Resource: "arn:aws:route53:::change/*"
-              # EC2 (SG / Subnet / VPC lookups + NAT GW + EIP by CFn)
+              # EC2 (SG / Subnet / VPC lookups + NAT GW + EIP + VPC Endpoint + SG by CFn)
               - Effect: Allow
                 Action:
                   - ec2:Describe*
@@ -128,6 +129,22 @@ Resources:
                   - ec2:CreateRoute
                   - ec2:DeleteRoute
                   - ec2:CreateTags
+                  - ec2:CreateVpcEndpoint
+                  - ec2:DeleteVpcEndpoints
+                  - ec2:CreateSecurityGroup
+                  - ec2:DeleteSecurityGroup
+                  - ec2:AuthorizeSecurityGroupIngress
+                  - ec2:RevokeSecurityGroupIngress
+                Resource: "*"
+              # ServiceDiscovery (for CFn to manage Cloud Map service in edge stack)
+              - Effect: Allow
+                Action:
+                  - servicediscovery:CreateService
+                  - servicediscovery:DeleteService
+                  - servicediscovery:GetService
+                  - servicediscovery:ListServices
+                  - servicediscovery:TagResource
+                  - servicediscovery:UntagResource
                 Resource: "*"
               # IAM CreateServiceLinkedRole (for first-time ALB creation)
               - Effect: Allow
