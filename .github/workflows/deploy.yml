@@ -97,6 +97,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       # ---- notification-lambda ----
+      # provenance: false は Lambda Container Image の OCI manifest list 非対応を回避するため必須
       - name: Build & push notification-lambda
         uses: docker/build-push-action@v6
         with:
@@ -104,6 +105,7 @@ jobs:
           file: Dockerfile.notification-lambda
           platforms: linux/amd64
           push: true
+          provenance: false
           tags: |
             ${{ steps.meta.outputs.notification_lambda_image }}
             ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/notification-lambda:latest
@@ -148,6 +150,21 @@ jobs:
             '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
 
+      - name: Clean up failed edge-stack if needed
+        run: |
+          STACK_STATUS=$(aws cloudformation describe-stacks \
+            --stack-name ${PROJECT_NAME}-edge \
+            --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+          if [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ] || [ "$STACK_STATUS" = "CREATE_FAILED" ]; then
+            echo "Stack in $STACK_STATUS state, deleting..."
+            aws cloudformation delete-stack --stack-name ${PROJECT_NAME}-edge
+            aws cloudformation wait stack-delete-complete --stack-name ${PROJECT_NAME}-edge
+            echo "Stack deleted successfully"
+          elif [ "$STACK_STATUS" = "DELETE_IN_PROGRESS" ]; then
+            echo "Stack deletion in progress, waiting..."
+            aws cloudformation wait stack-delete-complete --stack-name ${PROJECT_NAME}-edge
+          fi
+
       - name: Deploy edge-stack (create or update)
         run: |
           aws cloudformation deploy \
@@ -156,6 +173,14 @@ jobs:
             --parameter-overrides ProjectName=${PROJECT_NAME} \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset
+
+      - name: Update Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${PROJECT_NAME}-notification-delivery \
+            --image-uri "${{ needs.build-and-push.outputs.notification_lambda_image }}" \
+            --no-cli-pager
+          echo "Lambda function code updated"
 
       - name: Force new deployment (if services are running)
         run: |
