@@ -21,23 +21,49 @@ env:
 
 jobs:
   # ============================================================
-  # Build & Push Docker images to ECR
+  # Build & Push Docker images to ECR (parallel matrix)
   # ============================================================
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
-    outputs:
-      admin_image: ${{ steps.meta.outputs.admin_image }}
-      user_image: ${{ steps.meta.outputs.user_image }}
-      notification_lambda_image: ${{ steps.meta.outputs.notification_lambda_image }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - app: admin
+            file: Dockerfile
+            target: runner-admin
+            build_args: APP_NAME=admin
+          - app: user
+            file: Dockerfile
+            target: runner-user
+            build_args: APP_NAME=user
+          - app: notification-lambda
+            file: Dockerfile.notification-lambda
+            target: ""
+            build_args: ""
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check deploy target
+        id: check
+        run: |
+          TARGET="${{ inputs.deploy_target || 'all' }}"
+          APP="${{ matrix.app }}"
+          if [ "$APP" = "notification-lambda" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          elif [ "$TARGET" = "all" ] || [ "$TARGET" = "$APP" ] || [ "${{ github.event_name }}" = "push" ]; then
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_build=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure AWS credentials
+        if: steps.check.outputs.should_build == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -45,66 +71,30 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        if: steps.check.outputs.should_build == 'true'
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set image tags
-        id: meta
-        run: |
-          REGISTRY=${{ steps.ecr-login.outputs.registry }}
-          SHA=${GITHUB_SHA::8}
-          echo "admin_image=${REGISTRY}/${PROJECT_NAME}/admin:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "user_image=${REGISTRY}/${PROJECT_NAME}/user:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "notification_lambda_image=${REGISTRY}/${PROJECT_NAME}/notification-lambda:${SHA}" >> "$GITHUB_OUTPUT"
-
       - name: Set up Docker Buildx
+        if: steps.check.outputs.should_build == 'true'
         uses: docker/setup-buildx-action@v3
 
-      # ---- admin ----
-      - name: Build & push admin
-        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'admin' || github.event_name == 'push'
+      - name: Build & push
+        if: steps.check.outputs.should_build == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.admin
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target || '' }}
+          build-args: ${{ matrix.build_args }}
           platforms: linux/amd64
           push: true
+          provenance: ${{ matrix.app == 'notification-lambda' && 'false' || '' }}
           tags: |
-            ${{ steps.meta.outputs.admin_image }}
-            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/admin:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ---- user ----
-      - name: Build & push user
-        if: inputs.deploy_target == 'all' || inputs.deploy_target == 'user' || github.event_name == 'push'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.user
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ steps.meta.outputs.user_image }}
-            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/user:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # ---- notification-lambda ----
-      # provenance: false は Lambda Container Image の OCI manifest list 非対応を回避するため必須
-      - name: Build & push notification-lambda
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.notification-lambda
-          platforms: linux/amd64
-          push: true
-          provenance: false
-          tags: |
-            ${{ steps.meta.outputs.notification_lambda_image }}
-            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/notification-lambda:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.app }}:${{ github.sha }}
+            ${{ steps.ecr-login.outputs.registry }}/${{ env.PROJECT_NAME }}/${{ matrix.app }}:latest
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
 
   # ============================================================
   # Update ECS task definitions with new images
@@ -127,12 +117,23 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tags
+        id: images
+        run: |
+          REGISTRY=${{ steps.ecr-login.outputs.registry }}
+          echo "admin=${REGISTRY}/${PROJECT_NAME}/admin:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "user=${REGISTRY}/${PROJECT_NAME}/user:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "notification_lambda=${REGISTRY}/${PROJECT_NAME}/notification-lambda:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
       - name: Update admin task definition
         if: inputs.deploy_target == 'all' || inputs.deploy_target == 'admin' || github.event_name == 'push'
         run: |
-          # Get current task def, update image, register new revision
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${PROJECT_NAME}-admin --query taskDefinition)
-          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ needs.build-and-push.outputs.admin_image }}" \
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ steps.images.outputs.admin }}" \
             '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
 
@@ -140,7 +141,7 @@ jobs:
         if: inputs.deploy_target == 'all' || inputs.deploy_target == 'user' || github.event_name == 'push'
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition ${PROJECT_NAME}-user --query taskDefinition)
-          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ needs.build-and-push.outputs.user_image }}" \
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "${{ steps.images.outputs.user }}" \
             '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
           aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF"
 
@@ -172,7 +173,7 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name ${PROJECT_NAME}-notification-delivery \
-            --image-uri "${{ needs.build-and-push.outputs.notification_lambda_image }}" \
+            --image-uri "${{ steps.images.outputs.notification_lambda }}" \
             --no-cli-pager
           echo "Lambda function code updated"
 
@@ -182,8 +183,10 @@ jobs:
           cd infra/lambda
           zip -j /tmp/start.zip start.py
           zip -j /tmp/stop.zip stop.py
+          zip -j /tmp/deliver.zip deliver_notification.py
           aws s3 cp /tmp/start.zip s3://${PROJECT_NAME}-lambda-deploy/lambda/start.zip
           aws s3 cp /tmp/stop.zip s3://${PROJECT_NAME}-lambda-deploy/lambda/stop.zip
+          aws s3 cp /tmp/deliver.zip s3://${PROJECT_NAME}-lambda-deploy/lambda/deliver_notification.zip
 
       - name: Force new deployment (if services are running)
         run: |

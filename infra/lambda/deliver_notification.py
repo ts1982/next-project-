@@ -22,14 +22,11 @@ import boto3
 import psycopg2
 import psycopg2.extras
 
-_ssm_cache: dict = {}
-
-
-def _get_ssm(name: str) -> str:
-    if name not in _ssm_cache:
-        ssm = boto3.client("ssm")
-        _ssm_cache[name] = ssm.get_parameter(Name=name, WithDecryption=True)["Parameter"]["Value"]
-    return _ssm_cache[name]
+_ssm = boto3.client("ssm")
+_project = os.environ.get("PROJECT_NAME", "next-project")
+_DATABASE_URL = _ssm.get_parameter(Name=f"/{_project}/DATABASE_URL", WithDecryption=True)["Parameter"]["Value"]
+_INTERNAL_API_SECRET = _ssm.get_parameter(Name=f"/{_project}/INTERNAL_API_SECRET", WithDecryption=True)["Parameter"]["Value"]
+_USER_APP_URL = os.environ.get("USER_APP_URL", "http://localhost:3001")
 
 
 def handler(event, context):
@@ -37,19 +34,14 @@ def handler(event, context):
     if not notification_id:
         raise ValueError("notificationId is required in event payload")
 
-    project_name = os.environ.get("PROJECT_NAME", "next-project")
-    database_url = _get_ssm(f"/{project_name}/DATABASE_URL")
-    user_app_url = os.environ.get("USER_APP_URL", "http://localhost:3001")
-    internal_api_secret = _get_ssm(f"/{project_name}/INTERNAL_API_SECRET")
-
-    conn = psycopg2.connect(database_url, cursor_factory=psycopg2.extras.RealDictCursor)
+    conn = psycopg2.connect(_DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
     try:
         user_ids, notification_snapshot = _deliver(conn, notification_id)
     finally:
         conn.close()
 
     if notification_snapshot is not None and user_ids:
-        _broadcast(user_app_url, internal_api_secret, user_ids, notification_snapshot)
+        _broadcast(_USER_APP_URL, _INTERNAL_API_SECRET, user_ids, notification_snapshot)
 
     return {"ok": True, "delivered": len(user_ids) if user_ids else 0}
 

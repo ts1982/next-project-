@@ -45,5 +45,9 @@ docker-compose*.yml
 Dockerfile.*
 Makefile
 
+# Build caches
+.turbo/
+.claude/
+
 # Backups
 prisma.bak/
