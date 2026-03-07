@@ -270,7 +270,7 @@ Resources:
   SSMVPCEndpointSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "SSM VPC Endpoint SG - HTTPS from Lambda"
+      GroupDescription: "SSM VPC Endpoint SG - HTTPS from Lambda and Fargate"
       VpcId: !ImportValue
         Fn::Sub: "${ProjectName}-VPCId"
       SecurityGroupIngress:
@@ -279,6 +279,11 @@ Resources:
           ToPort: 443
           SourceSecurityGroupId: !ImportValue
             Fn::Sub: "${ProjectName}-LambdaSecurityGroupId"
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !ImportValue
+            Fn::Sub: "${ProjectName}-FargateSecurityGroupId"
 
   SSMVPCEndpoint:
     Type: AWS::EC2::VPCEndpoint
