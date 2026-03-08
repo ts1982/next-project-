@@ -114,7 +114,7 @@ def wait_edge_stack_deleted():
         waiter = cfn.get_waiter("stack_delete_complete")
         waiter.wait(
             StackName=EDGE_STACK_NAME,
-            WaiterConfig={"Delay": 15, "MaxAttempts": 40},  # max ~10 min
+            WaiterConfig={"Delay": 15, "MaxAttempts": 25},  # max ~6 min (Lambda 15min制限に余裕を持たせる)
         )
         print("[cfn] Edge stack deleted!")
     except Exception as e:
@@ -132,7 +132,7 @@ def wait_edge_stack_deleted():
 # ---- RDS ----
 
 # RDS が削除可能な状態に達するまで待機する対象ステータス
-_DELETABLE_STATUSES = {"available", "stopped", "incompatible-parameters", "incompatible-restore"}
+_DELETABLE_STATUSES = {"available", "stopped", "backing-up", "incompatible-parameters", "incompatible-restore"}
 
 # 過渡状態（しばらく待てば削除可能ステータスへ遷移する）
 _TRANSITIONAL_STATUSES = {

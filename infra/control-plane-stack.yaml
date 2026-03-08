@@ -156,6 +156,12 @@ Resources:
                 Condition:
                   StringEquals:
                     iam:AWSServiceName: elasticloadbalancing.amazonaws.com
+              # SSM (update DATABASE_URL after RDS restore)
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:PutParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/DATABASE_URL"
               # EventBridge Scheduler (create/delete auto-stop schedule)
               - Effect: Allow
                 Action:
