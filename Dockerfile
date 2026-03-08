@@ -67,6 +67,7 @@ COPY --from=build /app/apps/admin/middleware.ts ./apps/admin/middleware.ts
 COPY --from=build /app/apps/admin/auth.ts ./apps/admin/auth.ts
 COPY --from=build /app/apps/admin/auth.config.ts ./apps/admin/auth.config.ts
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=build /app/turbo.json ./turbo.json
 
 USER nextjs
@@ -100,6 +101,7 @@ COPY --from=build /app/apps/user/next.config.ts ./apps/user/next.config.ts
 COPY --from=build /app/apps/user/tsconfig.json ./apps/user/tsconfig.json
 COPY --from=build /app/apps/user/package.json ./apps/user/package.json
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=build /app/turbo.json ./turbo.json
 
 USER nextjs

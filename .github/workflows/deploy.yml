@@ -254,7 +254,7 @@ jobs:
             --overrides '{
               "containerOverrides": [{
                 "name": "admin",
-                "command": ["sh", "-c", "cd /app && pnpm exec prisma migrate deploy --schema=packages/database/prisma/schema.prisma"]
+                "command": ["sh", "-c", "cd /app && node_modules/.bin/prisma migrate deploy --schema=packages/database/prisma/schema.prisma"]
               }]
             }' \
             --query 'tasks[0].taskArn' --output text)
