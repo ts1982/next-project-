@@ -33,7 +33,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY packages/database ./packages/database
 COPY packages/ui ./packages/ui
 COPY apps/${APP_NAME} ./apps/${APP_NAME}
-COPY package.json pnpm-workspace.yaml .npmrc turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
 
 # Rebuild Prisma Client in build stage
 RUN cd packages/database && pnpm exec prisma generate
