@@ -17,9 +17,10 @@ help:
 	@echo "  make deploy-all      - Build & push all images to ECR"
 	@echo ""
 	@echo "AWS Infrastructure:"
-	@echo "  make infra-start      - Start AWS environment (Lambda → RDS → Edge Stack)"
-	@echo "  make infra-stop       - Stop AWS environment (Edge Stack → RDS)"
-	@echo "  make infra-status     - Show current AWS environment status"
+	@echo "  make infra-start                  - Start AWS environment (Lambda → RDS → Edge Stack)"
+	@echo "  make infra-stop                   - Stop AWS environment (Edge Stack → RDS)"
+	@echo "  make infra-status                 - Show current AWS environment status"
+	@echo "  make infra-deploy-control-plane   - Update control-plane stack (IAM / Lambda)"
 	@echo ""
 	@echo "Database:"
 	@echo "  make db-up            - Start PostgreSQL container"
@@ -131,6 +132,8 @@ PROJECT      = next-project
 AWS_STACK    = next-project-edge
 START_FN     = next-project-start
 STOP_FN      = next-project-stop
+CONTROL_PLANE_STACK = $(PROJECT)-ctrl
+EDGE_TEMPLATE_S3URL = https://$(PROJECT)-lambda-deploy.s3.$(AWS_REGION).amazonaws.com/edge-stack.yaml
 
 infra-start:
 	@echo "🚀 Starting AWS environment..."
@@ -189,6 +192,17 @@ infra-stop:
 	  sleep 30; \
 	done
 	@echo "✅ Environment is DOWN."
+
+infra-deploy-control-plane:
+	@echo "🔧 Deploying control-plane stack (IAM roles / Lambda config)..."
+	@aws cloudformation deploy \
+	  --stack-name $(CONTROL_PLANE_STACK) \
+	  --template-file infra/control-plane-stack.yaml \
+	  --capabilities CAPABILITY_NAMED_IAM \
+	  --parameter-overrides EdgeTemplateS3URL=$(EDGE_TEMPLATE_S3URL) \
+	  --region $(AWS_REGION) \
+	  --no-fail-on-empty-changeset
+	@echo "✅ control-plane stack deployed"
 
 infra-status:
 	@echo "🔍 AWS Environment Status:"

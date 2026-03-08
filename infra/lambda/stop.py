@@ -173,6 +173,9 @@ def delete_rds():
             else:
                 raise RuntimeError(f"[rds] Cannot delete in status: {status}")
 
+        # 削除前に既存スナップショットを記録（新スナップショット確認後に削除）
+        old_snapshots = _get_existing_snapshot_ids()
+
         # タイムスタンプ + UUID サフィックスで一意なスナップショット名（並行実行・リトライ時の衝突なし）
         snapshot_id = f"{SNAPSHOT_PREFIX}-{int(time.time())}-{uuid.uuid4().hex[:8]}"
         print(f"[rds] Deleting instance with final snapshot: {snapshot_id}")
@@ -185,8 +188,65 @@ def delete_rds():
         )
         print("[rds] Delete requested (final snapshot will be created)")
 
+        # 新スナップショットが available になれば旧スナップショットを削除
+        if _wait_for_snapshot(snapshot_id):
+            _delete_old_snapshots(old_snapshots)
+
     except rds.exceptions.DBInstanceNotFoundFault:
         print("[rds] Instance not found (already deleted)")
     except Exception as e:
         print(f"[rds] Error: {e}")
         raise
+
+
+def _get_existing_snapshot_ids() -> list:
+    """SNAPSHOT_PREFIX に一致する既存スナップショットの ID リストを返す。"""
+    resp = rds.describe_db_snapshots(
+        DBInstanceIdentifier=RDS_INSTANCE_ID,
+        SnapshotType="manual",
+    )
+    ids = [
+        s["DBSnapshotIdentifier"]
+        for s in resp["DBSnapshots"]
+        if s["DBSnapshotIdentifier"].startswith(SNAPSHOT_PREFIX)
+    ]
+    print(f"[rds] Existing snapshots to delete after new one is ready: {ids}")
+    return ids
+
+
+def _wait_for_snapshot(snapshot_id: str, max_attempts: int = 16) -> bool:
+    """スナップショットが available になるまで待機（最大 8 分、30s × 16 回）。
+    True=成功、False=失敗/タイムアウト（旧スナップショット削除をスキップする）。
+    """
+    print(f"[rds] Waiting for snapshot '{snapshot_id}' to become available...")
+    for attempt in range(max_attempts):
+        try:
+            resp = rds.describe_db_snapshots(DBSnapshotIdentifier=snapshot_id)
+            status = resp["DBSnapshots"][0]["Status"]
+            if status == "available":
+                print(f"[rds] Snapshot '{snapshot_id}' is available!")
+                return True
+            if status in {"failed", "deleted"}:
+                print(f"[rds] Snapshot '{snapshot_id}' status: {status} — skipping cleanup")
+                return False
+            print(f"[rds] Snapshot status: {status} ({attempt + 1}/{max_attempts})")
+        except rds.exceptions.DBSnapshotNotFoundFault:
+            print(f"[rds] Snapshot not visible yet ({attempt + 1}/{max_attempts})")
+        time.sleep(30)
+    print(f"[rds] Snapshot wait timed out after {max_attempts * 30}s — skipping old snapshot cleanup")
+    return False
+
+
+def _delete_old_snapshots(snapshot_ids: list) -> None:
+    """旧スナップショットを削除する。"""
+    if not snapshot_ids:
+        print("[rds] No old snapshots to delete")
+        return
+    for snap_id in snapshot_ids:
+        try:
+            rds.delete_db_snapshot(DBSnapshotIdentifier=snap_id)
+            print(f"[rds] Deleted old snapshot: {snap_id}")
+        except rds.exceptions.DBSnapshotNotFoundFault:
+            print(f"[rds] Snapshot already deleted: {snap_id}")
+        except Exception as e:
+            print(f"[rds] Failed to delete snapshot {snap_id}: {e}")
