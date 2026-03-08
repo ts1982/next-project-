@@ -24,6 +24,7 @@ import json
 import os
 import time
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlsplit, urlunsplit
 
 import boto3
 
@@ -41,6 +42,7 @@ SNAPSHOT_PREFIX = f"{PROJECT_NAME}-final-snap"
 rds = boto3.client("rds")
 cfn = boto3.client("cloudformation")
 scheduler = boto3.client("scheduler")
+ssm = boto3.client("ssm")
 
 EDGE_STACK_NAME = f"{PROJECT_NAME}-edge"
 SCHEDULE_NAME = f"{PROJECT_NAME}-auto-stop"
@@ -55,13 +57,16 @@ def handler(event, context):
     # 2) RDS available 待機 (通常 5-10 分)
     wait_rds_available()
 
-    # 3) Edge Stack 作成 (非同期 — Lambda は完了を待たない)
+    # 3) SSM DATABASE_URL を新しい RDS エンドポイントで更新
+    update_ssm_database_url()
+
+    # 4) Edge Stack 作成 (非同期 — Lambda は完了を待たない)
     create_edge_stack()
 
-    # 4) auto-stop スケジュール作成 (現在 + AUTO_STOP_HOURS)
+    # 5) auto-stop スケジュール作成 (現在 + AUTO_STOP_HOURS)
     create_auto_stop_schedule()
 
-    print("[start] RDS is up. Edge Stack is being created (async).")
+    print("[start] RDS is up, DATABASE_URL synced. Edge Stack is being created (async).")
     print("[start] Check progress: aws cloudformation describe-stacks "
           f"--stack-name {EDGE_STACK_NAME}")
     return {
@@ -142,6 +147,43 @@ def wait_rds_available():
         WaiterConfig={"Delay": 30, "MaxAttempts": 30},  # max ~15 min
     )
     print("[rds] Available!")
+
+
+# ---- SSM DATABASE_URL 更新 ----
+def update_ssm_database_url():
+    """RDS 復元後にエンドポイントが変わるため、SSM の DATABASE_URL を新しいホストに更新する。"""
+    param_name = f"/{PROJECT_NAME}/DATABASE_URL"
+
+    # 新しい RDS エンドポイントを取得
+    resp = rds.describe_db_instances(DBInstanceIdentifier=RDS_INSTANCE_ID)
+    new_host = resp["DBInstances"][0]["Endpoint"]["Address"]
+    print(f"[ssm] New RDS endpoint: {new_host}")
+
+    # 現在の DATABASE_URL を取得
+    param = ssm.get_parameter(Name=param_name, WithDecryption=True)
+    current_url = param["Parameter"]["Value"]
+
+    # urllib.parse で URL を解析してホスト部分のみを確実に置換する
+    # (ポート無し URL や IPv6 ホストにも対応)
+    parsed = urlsplit(current_url)
+    # netloc の userinfo 部分(既にパーセントエンコード済み)をそのまま保持して
+    # ホストのみを差し替える。username/password を decode→再 encode するより安全。
+    at_pos = parsed.netloc.rfind("@")
+    if at_pos != -1:
+        userinfo = parsed.netloc[:at_pos]
+        netloc = f"{userinfo}@{new_host}"
+    else:
+        netloc = new_host
+    if parsed.port:
+        netloc += f":{parsed.port}"
+    new_url = urlunsplit(parsed._replace(netloc=netloc))
+
+    if new_url == current_url:
+        print("[ssm] DATABASE_URL already up to date")
+        return
+
+    ssm.put_parameter(Name=param_name, Value=new_url, Type="SecureString", Overwrite=True)
+    print("[ssm] DATABASE_URL updated")
 
 
 # 失敗状態のスタック（削除→再作成が必要）

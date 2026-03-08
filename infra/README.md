@@ -136,6 +136,8 @@ aws ssm put-parameter --region $REGION --type SecureString --overwrite \
 
 ### Step 6: Docker イメージをビルドして ECR にプッシュ
 
+> **ℹ️** 本プロジェクトは統一 `Dockerfile`（マルチステージ）を使用し、`--build-arg APP_NAME` と `--target` でアプリを切り替えます。
+
 ```bash
 AWS_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 ECR_BASE="${AWS_ACCOUNT}.dkr.ecr.${REGION}.amazonaws.com"
@@ -144,17 +146,22 @@ aws ecr get-login-password --region $REGION | \
   docker login --username AWS --password-stdin ${ECR_BASE}
 
 # admin
-docker build -f Dockerfile.admin -t ${ECR_BASE}/next-project/admin:latest .
+docker build --build-arg APP_NAME=admin --target runner-admin \
+  -t ${ECR_BASE}/next-project/admin:latest .
 docker push ${ECR_BASE}/next-project/admin:latest
 
 # user
-docker build -f Dockerfile.user -t ${ECR_BASE}/next-project/user:latest .
+docker build --build-arg APP_NAME=user --target runner-user \
+  -t ${ECR_BASE}/next-project/user:latest .
 docker push ${ECR_BASE}/next-project/user:latest
 
-# cron
-docker build -f Dockerfile.cron -t ${ECR_BASE}/next-project/cron:latest .
-docker push ${ECR_BASE}/next-project/cron:latest
+# notification-lambda
+docker build -f Dockerfile.notification-lambda \
+  -t ${ECR_BASE}/next-project/notification-lambda:latest .
+docker push ${ECR_BASE}/next-project/notification-lambda:latest
 ```
+
+> **Makefile の便利コマンド**: `make deploy-admin` / `make deploy-user` / `make deploy-lambda` / `make deploy-all` でも同じ操作ができます。
 
 ### Step 7: Control Plane Stack デプロイ
 
@@ -248,9 +255,29 @@ wscat -c wss://app.studify.click/ws
 ## 起動・停止方法
 
 > **仕組みの概要**
-> - **start Lambda**: RDS を起動 → Edge Stack（ALB + ECS Service）を作成 → 5 時間後に自動停止をスケジュール
-> - **stop Lambda**: auto-stop スケジュールを削除 → Edge Stack を削除（ALB を消してコスト削減）→ RDS を停止
-> - Edge Stack 作成に約 5〜10 分、RDS 起動に約 5〜10 分かかる（合計 10〜20 分）
+> - **start Lambda**: RDS を起動（またはスナップショットから復元）→ SSM `DATABASE_URL` を新エンドポイントで更新 → Edge Stack（ALB + ECS Service）を作成 → 5 時間後に自動停止をスケジュール
+> - **stop Lambda**: auto-stop スケジュールを削除 → Edge Stack を削除（ALB を消してコスト削減）→ RDS を**スナップショット保存後に完全削除**（7 日後自動起動を回避）
+> - Edge Stack 作成に約 5〜10 分、RDS 起動/復元に約 5〜10 分かかる（合計 10〜20 分）
+
+### 日常運用フロー（Quick Reference）
+
+```
+╒═══════════════════════════════════════════════════════════════════╕
+│  日常の起動・利用・停止フロー                           │
+│                                                                   │
+│  1. make infra-start     ← RDS + Edge Stack 起動 (10〜20分)       │
+│  2. make infra-status    ← RDS: available, Edge: CREATE_COMPLETE  │
+│  3. ブラウザで admin/user を利用                                │
+│  4. make infra-stop      ← 手動停止（または 5h 後に自動停止）       │
+│                                                                   │
+│  ※ コード変更時: git push → GitHub Actions が自動デプロイ       │
+│  ※ ローカルからの push: make deploy-admin / make deploy-user     │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+> **重要**: `make infra-start` は「インフラ起動」のみを行います。Docker イメージのビルド・ push は含まれません。  
+> イメージが ECR に push 済みであれば、`make infra-start` だけで起動からアクセス可能まで完結します。  
+> 初回またはコード変更後は、先に `make deploy-all`（または `git push` で GitHub Actions）を実行してください。
 
 ### 手動起動
 
@@ -326,9 +353,9 @@ aws cloudformation describe-stacks \
 stop Lambda によって以下が順番に実行されます:
 1. auto-stop EventBridge スケジュールを削除
 2. Edge Stack（ALB + ECS Service + Route53 Alias）を削除
-3. RDS を停止
+3. RDS をスナップショット保存後に完全削除（7 日後自動起動を回避）
 
-> **停止から起動まで**: RDS 再起動に 5〜10 分、Edge Stack 作成に 5〜10 分かかります（合計 10〜20 分）。
+> **停止から起動まで**: start Lambda がスナップショットから RDS を復元し、SSM `DATABASE_URL` を新エンドポイントで自動更新するため、手動での SSM 更新は不要です。
 
 ---
 

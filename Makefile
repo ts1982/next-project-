@@ -197,18 +197,30 @@ infra-status:
 	  --region $(AWS_REGION) \
 	  --query 'Stacks[0].StackStatus' \
 	  --output text 2>&1); \
-	  echo "   Edge Stack  : $$STACK_STATUS"
+	  if echo "$$STACK_STATUS" | grep -q "does not exist"; then \
+	    echo "   Edge Stack  : (not running)"; \
+	  else \
+	    echo "   Edge Stack  : $$STACK_STATUS"; \
+	  fi
 	@RDS_STATUS=$$(aws rds describe-db-instances \
 	  --region $(AWS_REGION) \
 	  --query 'DBInstances[?contains(DBInstanceIdentifier, `next-project`)].DBInstanceStatus | [0]' \
 	  --output text 2>&1); \
-	  echo "   RDS         : $$RDS_STATUS"
+	  if [ "$$RDS_STATUS" = "None" ] || echo "$$RDS_STATUS" | grep -q "error\|Error"; then \
+	    echo "   RDS         : (not found)"; \
+	  else \
+	    echo "   RDS         : $$RDS_STATUS"; \
+	  fi
 	@SCHEDULE=$$(aws scheduler get-schedule \
 	  --name next-project-auto-stop \
 	  --region $(AWS_REGION) \
 	  --query 'ScheduleExpression' \
-	  --output text 2>&1 || echo "(no auto-stop scheduled)"); \
-	  echo "   Auto-stop   : $$SCHEDULE"
+	  --output text 2>/dev/null) || SCHEDULE=""; \
+	  if [ -z "$$SCHEDULE" ]; then \
+	    echo "   Auto-stop   : (not scheduled)"; \
+	  else \
+	    echo "   Auto-stop   : $$SCHEDULE"; \
+	  fi
 
 # ============================================================
 # Deploy (Docker images → ECR)
@@ -221,13 +233,13 @@ ecr-login:
 
 deploy-admin: ecr-login
 	@echo "🐳 Building admin..."
-	docker build -f Dockerfile.admin -t $(ECR_BASE)/$(PROJECT)/admin:latest .
+	docker build --build-arg APP_NAME=admin --target runner-admin -f Dockerfile -t $(ECR_BASE)/$(PROJECT)/admin:latest .
 	docker push $(ECR_BASE)/$(PROJECT)/admin:latest
 	@echo "✅ admin image pushed"
 
 deploy-user: ecr-login
 	@echo "🐳 Building user..."
-	docker build -f Dockerfile.user -t $(ECR_BASE)/$(PROJECT)/user:latest .
+	docker build --build-arg APP_NAME=user --target runner-user -f Dockerfile -t $(ECR_BASE)/$(PROJECT)/user:latest .
 	docker push $(ECR_BASE)/$(PROJECT)/user:latest
 	@echo "✅ user image pushed"
 

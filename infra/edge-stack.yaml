@@ -211,6 +211,7 @@ Resources:
         - ContainerName: admin
           ContainerPort: 3000
           TargetGroupArn: !Ref AdminTargetGroup
+      HealthCheckGracePeriodSeconds: 60
       DeploymentConfiguration:
         MinimumHealthyPercent: 0
         MaximumPercent: 200

@@ -188,6 +188,20 @@ jobs:
           aws s3 cp /tmp/stop.zip s3://${PROJECT_NAME}-lambda-deploy/lambda/stop.zip
           aws s3 cp /tmp/deliver.zip s3://${PROJECT_NAME}-lambda-deploy/lambda/deliver_notification.zip
 
+      - name: Update start/stop Lambda function code
+        run: |
+          aws lambda update-function-code \
+            --function-name ${PROJECT_NAME}-start \
+            --s3-bucket ${PROJECT_NAME}-lambda-deploy \
+            --s3-key lambda/start.zip \
+            --no-cli-pager
+          aws lambda update-function-code \
+            --function-name ${PROJECT_NAME}-stop \
+            --s3-bucket ${PROJECT_NAME}-lambda-deploy \
+            --s3-key lambda/stop.zip \
+            --no-cli-pager
+          echo "Start/stop Lambda functions updated"
+
       - name: Force new deployment (if services are running)
         run: |
           # Only force deploy if services exist and are running
