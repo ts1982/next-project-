@@ -44,16 +44,16 @@ help:
 
 # Development
 dev:
-	npm run dev
+	pnpm dev
 
 build:
-	npm run build
+	pnpm build
 
 start:
-	npm run start
+	pnpm start
 
 lint:
-	npm run lint
+	pnpm lint
 
 # Database (Docker)
 up:
@@ -77,31 +77,31 @@ db-shell:
 # Prisma
 prisma-migrate:
 	@read -p "Enter migration name: " name; \
-	npx prisma migrate dev --name $$name
+	pnpm exec prisma migrate dev --name $$name
 
 prisma-reset:
 	@echo "⚠️  This will delete all data in the database!"
 	@read -p "Are you sure? (y/N): " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		npx prisma migrate reset; \
+		pnpm exec prisma migrate reset; \
 	else \
 		echo "Cancelled."; \
 	fi
 
 prisma-studio:
-	npx prisma studio
+	pnpm exec prisma studio
 
 prisma-generate:
-	npx prisma generate
+	pnpm exec prisma generate
 
 prisma-format:
-	npx prisma format
+	pnpm exec prisma format
 
 repl:
-	npm run repl
+	pnpm repl
 
 seed:
-	npx tsx prisma/seed.ts
+	pnpm exec tsx prisma/seed.ts
 
 # Utility
 clean:
@@ -110,10 +110,10 @@ clean:
 	@echo "✅ Cleaned build artifacts"
 
 install:
-	npm install
+	pnpm install
 
 update:
-	npm update
+	pnpm update
 	@echo "✅ Dependencies updated"
 
 # Setup (初回セットアップ用)

@@ -10,18 +10,19 @@
 # ---- base ----
 FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat
+RUN npm install -g pnpm@10.31.0
 WORKDIR /app
 
 # ---- deps ----
 FROM base AS deps
 ARG APP_NAME
-COPY package.json package-lock.json turbo.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
 COPY apps/${APP_NAME}/package.json ./apps/${APP_NAME}/
 COPY packages/database/package.json ./packages/database/
 COPY packages/ui/package.json ./packages/ui/
-# Prisma schema must exist before npm ci (postinstall triggers prisma generate)
+# Prisma schema must exist before pnpm install (postinstall triggers prisma generate)
 COPY packages/database/prisma ./packages/database/prisma
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # ---- build ----
 FROM base AS build
@@ -32,18 +33,19 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY packages/database ./packages/database
 COPY packages/ui ./packages/ui
 COPY apps/${APP_NAME} ./apps/${APP_NAME}
-COPY package.json turbo.json ./
+COPY package.json pnpm-workspace.yaml .npmrc turbo.json ./
 
 # Rebuild Prisma Client in build stage
-RUN cd packages/database && npx prisma generate
+RUN cd packages/database && pnpm exec prisma generate
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV SKIP_ENV_VALIDATION=1
-RUN npm run build --workspace=@repo/${APP_NAME}
+RUN pnpm --filter=@repo/${APP_NAME} run build
 
 # ---- runner-admin ----
 FROM node:20-alpine AS runner-admin
 RUN apk add --no-cache libc6-compat
+RUN npm install -g pnpm@10.31.0
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -71,7 +73,7 @@ USER nextjs
 EXPOSE 3000
 
 WORKDIR /app/apps/admin
-CMD ["npx", "next", "start"]
+CMD ["pnpm", "exec", "next", "start"]
 
 # ---- runner-user ----
 # standalone 不可（tsx + カスタムサーバー）のため node_modules 込み

@@ -1,6 +1,6 @@
 # プロジェクト概要
 
-- このリポジトリは npm workspaces + Turborepo 構成です。
+- このリポジトリは pnpm workspaces + Turborepo 構成です。
 - フロントエンド/管理画面は Next.js 16 + React 19 + TypeScript。
 - DB は `packages/database` の Prisma を単一ソースとして使用します。
 
@@ -27,10 +27,10 @@
 
 - 変更したワークスペース単位で lint/build を優先して確認する。
 - 代表コマンド:
-  - `npm run lint`
-  - `npm run build`
-  - `npm run dev --workspace=@repo/admin`
-  - `npm run dev --workspace=@repo/user`
+  - `pnpm lint`
+  - `pnpm build`
+  - `pnpm dev --filter=@repo/admin`
+  - `pnpm dev --filter=@repo/user`
 
 # Prisma 運用
 

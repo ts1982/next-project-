@@ -1,5 +1,5 @@
 ## Tech Stack
-- npm workspaces + Turborepo
+- pnpm workspaces + Turborepo
 - Next.js 16 / React 19 / TypeScript
 - Prisma (`packages/database`) + PostgreSQL
 - Tailwind CSS + shadcn/ui
@@ -10,13 +10,13 @@
 - `packages/database`: Prisma schema / seed / client
 
 ## Commands
-- `npm run lint` - lint 実行
-- `npm run build` - build 実行
-- `npm run dev --workspace=@repo/admin` - admin 起動
-- `npm run dev --workspace=@repo/user` - user 起動
-- `npm run db:generate` - Prisma Client 生成
-- `npm run db:migrate` - migration 作成/適用（開発）
-- `npm run db:seed` - seed 実行
+- `pnpm lint` - lint 実行
+- `pnpm build` - build 実行
+- `pnpm dev --filter=@repo/admin` - admin 起動
+- `pnpm dev --filter=@repo/user` - user 起動
+- `pnpm db:generate` - Prisma Client 生成
+- `pnpm db:migrate` - migration 作成/適用（開発）
+- `pnpm db:seed` - seed 実行
 
 ## Working Rules
 - 最小差分で変更し、影響範囲外のリファクタを避ける。

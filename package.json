@@ -2,21 +2,28 @@
   "name": "next-project",
   "version": "0.1.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "packageManager": "pnpm@10.31.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "db:generate": "cd packages/database && npx prisma generate",
-    "db:migrate": "cd packages/database && npx prisma migrate dev",
-    "db:seed": "cd packages/database && npx prisma db seed",
-    "db:studio": "cd packages/database && npx prisma studio"
+    "db:generate": "pnpm -C packages/database exec prisma generate",
+    "db:migrate": "pnpm -C packages/database exec prisma migrate dev",
+    "db:seed": "pnpm -C packages/database exec prisma db seed",
+    "db:studio": "pnpm -C packages/database exec prisma studio"
   },
   "devDependencies": {
     "turbo": "^2.5.0",
     "typescript": "^5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
