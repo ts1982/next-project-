@@ -19,6 +19,7 @@ export interface AdminNotification {
   type: NotificationType;
   targetType: NotificationTargetType;
   scheduledAt: Date | null;
+  schedulerName: string | null;
   deliveredAt: Date | null;
   createdAt: Date;
   updatedAt: Date;

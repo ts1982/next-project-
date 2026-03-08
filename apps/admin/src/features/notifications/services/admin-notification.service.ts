@@ -323,6 +323,12 @@ async function registerScheduler(
   const roleArn = process.env.SCHEDULER_EXECUTION_ROLE_ARN;
 
   if (!lambdaArn || !roleArn) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(
+        "[scheduler] NOTIFICATION_LAMBDA_ARN / SCHEDULER_EXECUTION_ROLE_ARN が未設定のため、スケジュール登録をスキップします（ローカル開発環境）",
+      );
+      return `local-mock-${notificationId}`;
+    }
     throw new Error(
       "NOTIFICATION_LAMBDA_ARN / SCHEDULER_EXECUTION_ROLE_ARN が未設定です",
     );
