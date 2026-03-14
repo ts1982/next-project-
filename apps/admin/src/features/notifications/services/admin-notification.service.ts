@@ -324,9 +324,17 @@ async function registerScheduler(
 
   if (!lambdaArn || !roleArn) {
     if (process.env.NODE_ENV !== "production") {
+      const delayMs = Math.max(0, scheduledAt.getTime() - Date.now());
+      // setTimeout の最大値 (約24.8日) を超えないようにクランプ
+      const safeDelay = Math.min(delayMs, 2_147_483_647);
       console.warn(
-        "[scheduler] NOTIFICATION_LAMBDA_ARN / SCHEDULER_EXECUTION_ROLE_ARN が未設定のため、スケジュール登録をスキップします（ローカル開発環境）",
+        `[scheduler] ローカル開発環境: ${safeDelay}ms 後に配信を実行します (notificationId=${notificationId})`,
       );
+      setTimeout(() => {
+        deliverNotification(notificationId).catch((err) => {
+          console.error("[scheduler] ローカル配信エラー:", err);
+        });
+      }, safeDelay);
       return `local-mock-${notificationId}`;
     }
     throw new Error(
