@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Bell, BellRing, BellOff, CheckCheck } from "lucide-react";
 import type { Notification } from "@/features/notifications/types/notification.types";
 import { useWebSocket } from "@/lib/hooks/use-websocket";
@@ -42,6 +42,7 @@ export function NotificationsClientPage({
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleNewNotification = useCallback(
     async (wsNotification: { id: string; title: string; body: string; type: string } | undefined) => {
@@ -82,6 +83,23 @@ export function NotificationsClientPage({
     },
     [],
   );
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && pagination.hasMore && !isLoadingMore) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [pagination.hasMore, isLoadingMore, handleLoadMore]);
 
   const { status: wsStatus } = useWebSocket({
     onNotification: handleNewNotification,
@@ -287,15 +305,14 @@ export function NotificationsClientPage({
       )}
 
       {pagination.hasMore && (
-        <div className="text-center pt-4">
-          <button
-            onClick={handleLoadMore}
-            disabled={isLoadingMore}
-            className="px-4 py-2 text-sm text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 disabled:opacity-50"
-          >
-            {isLoadingMore ? "読み込み中..." : "さらに読み込む"}
-          </button>
-        </div>
+        <>
+          <div ref={sentinelRef} className="h-1" />
+          {isLoadingMore && (
+            <div className="text-center py-4 text-sm text-gray-500">
+              読み込み中...
+            </div>
+          )}
+        </>
       )}
     </div>
   );
