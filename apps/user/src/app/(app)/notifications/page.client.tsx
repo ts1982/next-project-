@@ -84,23 +84,6 @@ export function NotificationsClientPage({
     [],
   );
 
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && pagination.hasMore && !isLoadingMore) {
-          handleLoadMore();
-        }
-      },
-      { rootMargin: "200px" },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [pagination.hasMore, isLoadingMore, handleLoadMore]);
-
   const { status: wsStatus } = useWebSocket({
     onNotification: handleNewNotification,
   });
@@ -155,6 +138,23 @@ export function NotificationsClientPage({
       setIsLoadingMore(false);
     }
   }, [pagination]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && pagination.hasMore && !isLoadingMore) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [pagination.hasMore, isLoadingMore, handleLoadMore]);
 
   const formatDate = (date: Date) => {
     const d = new Date(date);

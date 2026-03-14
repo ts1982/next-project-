@@ -206,15 +206,17 @@ jobs:
         run: |
           # Only force deploy if services exist and are running
           for SVC in admin-svc user-svc; do
+            APP="${SVC%-svc}"
             STATUS=$(aws ecs describe-services \
               --cluster ${PROJECT_NAME}-cluster \
               --services ${PROJECT_NAME}-${SVC} \
               --query 'services[0].status' --output text 2>/dev/null || echo "MISSING")
             if [ "$STATUS" = "ACTIVE" ]; then
-              echo "Deploying ${SVC}..."
+              echo "Deploying ${SVC} with new task definition..."
               aws ecs update-service \
                 --cluster ${PROJECT_NAME}-cluster \
                 --service ${PROJECT_NAME}-${SVC} \
+                --task-definition ${PROJECT_NAME}-${APP} \
                 --force-new-deployment
             else
               echo "${SVC} not active (status: ${STATUS}), skipping"
