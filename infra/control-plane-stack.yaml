@@ -12,7 +12,7 @@ Parameters:
     Description: "S3 URL of the edge-stack.yaml template (e.g. https://s3.ap-northeast-1.amazonaws.com/bucket/edge-stack.yaml)"
   AutoStopHours:
     Type: Number
-    Default: 5
+    Default: 3
     Description: "Hours after start to auto-stop"
 
 Resources:
