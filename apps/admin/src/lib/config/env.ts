@@ -11,8 +11,7 @@ const envSchema = z.object({
   // Node Environment
   NODE_ENV: z
     .enum(["development", "production", "test"], {
-      message:
-        "NODE_ENVはdevelopment, production, testのいずれかである必要があります",
+      message: "NODE_ENVはdevelopment, production, testのいずれかである必要があります",
     })
     .default("development"),
 

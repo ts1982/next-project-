@@ -36,8 +36,7 @@ export function NotificationsClientPage({
   initialPagination,
   initialUnreadCount,
 }: NotificationsClientPageProps) {
-  const [notifications, setNotifications] =
-    useState<Notification[]>(initialNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [pagination, setPagination] = useState(initialPagination);
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -45,7 +44,9 @@ export function NotificationsClientPage({
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleNewNotification = useCallback(
-    async (wsNotification: { id: string; title: string; body: string; type: string } | undefined) => {
+    async (
+      wsNotification: { id: string; title: string; body: string; type: string } | undefined,
+    ) => {
       if (!wsNotification) return;
       // API から最新1件を取得して正確なデータを表示
       try {
@@ -100,9 +101,7 @@ export function NotificationsClientPage({
   const handleMarkAsRead = useCallback(async (id: string) => {
     const res = await fetch(`/api/notifications/${id}`, { method: "PATCH" });
     if (res.ok) {
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
       setUnreadCount((prev) => Math.max(0, prev - 1));
     }
   }, []);
@@ -126,9 +125,7 @@ export function NotificationsClientPage({
     if (!pagination.hasMore || !pagination.nextCursor) return;
     setIsLoadingMore(true);
     try {
-      const res = await fetch(
-        `/api/notifications?cursor=${pagination.nextCursor}&limit=20`,
-      );
+      const res = await fetch(`/api/notifications?cursor=${pagination.nextCursor}&limit=20`);
       if (res.ok) {
         const data = await res.json();
         setNotifications((prev) => [...prev, ...data.data.notifications]);
@@ -225,9 +222,7 @@ export function NotificationsClientPage({
                     ? "プッシュ通知: ON"
                     : "プッシュ通知を有効にすると、ブラウザを閉じていても通知を受け取れます"}
               </span>
-              {pushError && (
-                <p className="text-xs text-red-500 mt-1">{pushError}</p>
-              )}
+              {pushError && <p className="text-xs text-red-500 mt-1">{pushError}</p>}
             </div>
           </div>
           {pushPermission !== "denied" && (
@@ -240,11 +235,7 @@ export function NotificationsClientPage({
                   : "text-white bg-blue-600 hover:bg-blue-700"
               }`}
             >
-              {isPushLoading
-                ? "処理中..."
-                : isPushSubscribed
-                  ? "無効にする"
-                  : "有効にする"}
+              {isPushLoading ? "処理中..." : isPushSubscribed ? "無効にする" : "有効にする"}
             </button>
           )}
         </div>
@@ -261,9 +252,7 @@ export function NotificationsClientPage({
             <div
               key={notification.id}
               className={`p-4 bg-white rounded-lg border transition-colors ${
-                !notification.isRead
-                  ? "border-blue-200 shadow-sm"
-                  : "border-gray-200"
+                !notification.isRead ? "border-blue-200 shadow-sm" : "border-gray-200"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -286,9 +275,7 @@ export function NotificationsClientPage({
                   <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
                     {notification.body}
                   </p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {formatDate(notification.createdAt)}
-                  </p>
+                  <p className="text-xs text-gray-400 mt-2">{formatDate(notification.createdAt)}</p>
                 </div>
                 {!notification.isRead && (
                   <button
@@ -308,9 +295,7 @@ export function NotificationsClientPage({
         <>
           <div ref={sentinelRef} className="h-1" />
           {isLoadingMore && (
-            <div className="text-center py-4 text-sm text-gray-500">
-              読み込み中...
-            </div>
+            <div className="text-center py-4 text-sm text-gray-500">読み込み中...</div>
           )}
         </>
       )}

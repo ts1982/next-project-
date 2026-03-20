@@ -64,8 +64,7 @@ export async function sendPushNotification(
     );
     return { endpoint: target.endpoint, expired: false };
   } catch (error) {
-    const statusCode =
-      error instanceof webpush.WebPushError ? error.statusCode : 0;
+    const statusCode = error instanceof webpush.WebPushError ? error.statusCode : 0;
     const isExpired = statusCode === 410 || statusCode === 404;
     if (!isExpired) {
       console.error("[web-push] Send failed:", error);

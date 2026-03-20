@@ -21,7 +21,7 @@ class Logger {
       // 開発環境: 読みやすい形式
       console[level === "debug" ? "log" : level](
         `[${timestamp}] ${level.toUpperCase()}: ${message}`,
-        context || ""
+        context || "",
       );
     }
   }

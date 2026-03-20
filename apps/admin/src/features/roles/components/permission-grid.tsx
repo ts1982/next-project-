@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import {
   RESOURCES,
@@ -7,24 +7,24 @@ import {
   ACTION_LABELS,
   SCOPE_LABELS,
   type PermissionScope,
-} from "@/lib/auth/permissions"
-import type { PermissionDefinition } from "../types/role.types"
+} from "@/lib/auth/permissions";
+import type { PermissionDefinition } from "../types/role.types";
 
 /** 各セルの選択状態 */
 export interface PermissionSelection {
-  permissionId: string
-  scope: "ALL" | "OWN"
+  permissionId: string;
+  scope: "ALL" | "OWN";
 }
 
 interface PermissionGridProps {
   /** DB上のパーミッション定義一覧 */
-  permissions: PermissionDefinition[]
+  permissions: PermissionDefinition[];
   /** 現在の選択状態 */
-  value: PermissionSelection[]
+  value: PermissionSelection[];
   /** 選択が変更されたとき */
-  onChange: (selections: PermissionSelection[]) => void
+  onChange: (selections: PermissionSelection[]) => void;
   /** 読み取り専用 */
-  readOnly?: boolean
+  readOnly?: boolean;
 }
 
 /**
@@ -39,41 +39,41 @@ export function PermissionGrid({
   readOnly = false,
 }: PermissionGridProps) {
   // permissionId 検索用マップ: "resource:action" → permissionId
-  const permissionMap = new Map<string, string>()
+  const permissionMap = new Map<string, string>();
   for (const p of permissions) {
-    permissionMap.set(`${p.resource}:${p.action}`, p.id)
+    permissionMap.set(`${p.resource}:${p.action}`, p.id);
   }
 
   // 現在値の検索用マップ: permissionId → scope
-  const selectionMap = new Map<string, "ALL" | "OWN">()
+  const selectionMap = new Map<string, "ALL" | "OWN">();
   for (const sel of value) {
-    selectionMap.set(sel.permissionId, sel.scope)
+    selectionMap.set(sel.permissionId, sel.scope);
   }
 
   /** セルのスコープを取得 */
   function getScope(resource: string, action: string): "ALL" | "OWN" | null {
-    const pid = permissionMap.get(`${resource}:${action}`)
-    if (!pid) return null
-    return selectionMap.get(pid) ?? null
+    const pid = permissionMap.get(`${resource}:${action}`);
+    if (!pid) return null;
+    return selectionMap.get(pid) ?? null;
   }
 
   /** セルのスコープを次の値に切り替え: null → ALL → OWN → null */
   function cycleScope(resource: string, action: string) {
-    if (readOnly) return
-    const pid = permissionMap.get(`${resource}:${action}`)
-    if (!pid) return
+    if (readOnly) return;
+    const pid = permissionMap.get(`${resource}:${action}`);
+    if (!pid) return;
 
-    const current = selectionMap.get(pid) ?? null
-    let next: "ALL" | "OWN" | null
-    if (current === null) next = "ALL"
-    else if (current === "ALL") next = "OWN"
-    else next = null
+    const current = selectionMap.get(pid) ?? null;
+    let next: "ALL" | "OWN" | null;
+    if (current === null) next = "ALL";
+    else if (current === "ALL") next = "OWN";
+    else next = null;
 
-    const newValue = value.filter((s) => s.permissionId !== pid)
+    const newValue = value.filter((s) => s.permissionId !== pid);
     if (next) {
-      newValue.push({ permissionId: pid, scope: next })
+      newValue.push({ permissionId: pid, scope: next });
     }
-    onChange(newValue)
+    onChange(newValue);
   }
 
   return (
@@ -81,9 +81,7 @@ export function PermissionGrid({
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr>
-            <th className="text-left p-2 border-b font-medium text-muted-foreground">
-              リソース
-            </th>
+            <th className="text-left p-2 border-b font-medium text-muted-foreground">リソース</th>
             {ACTIONS.map((action) => (
               <th
                 key={action}
@@ -99,8 +97,8 @@ export function PermissionGrid({
             <tr key={resource} className="border-b last:border-b-0">
               <td className="p-2 font-medium">{RESOURCE_LABELS[resource]}</td>
               {ACTIONS.map((action) => {
-                const scope = getScope(resource, action)
-                const pid = permissionMap.get(`${resource}:${action}`)
+                const scope = getScope(resource, action);
+                const pid = permissionMap.get(`${resource}:${action}`);
 
                 return (
                   <td key={action} className="p-2 text-center">
@@ -125,17 +123,13 @@ export function PermissionGrid({
                           scope ? SCOPE_LABELS[scope.toLowerCase() as PermissionScope] : "無効"
                         }`}
                       >
-                        {scope === "ALL"
-                          ? "すべて"
-                          : scope === "OWN"
-                            ? "自分のみ"
-                            : "—"}
+                        {scope === "ALL" ? "すべて" : scope === "OWN" ? "自分のみ" : "—"}
                       </button>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}
                   </td>
-                )
+                );
               })}
             </tr>
           ))}
@@ -147,5 +141,5 @@ export function PermissionGrid({
         </p>
       )}
     </div>
-  )
+  );
 }

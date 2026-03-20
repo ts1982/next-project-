@@ -188,9 +188,7 @@ export function DataTable<T>({
                     key={rowKey}
                     onClick={isClickable ? () => onRowClick(item) : undefined}
                     className={
-                      isClickable
-                        ? "cursor-pointer hover:bg-muted/50 transition-colors"
-                        : ""
+                      isClickable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                     }
                     role={isClickable ? "button" : undefined}
                     tabIndex={isClickable ? 0 : undefined}

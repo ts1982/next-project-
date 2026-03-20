@@ -12,7 +12,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-  
+
   // callbackUrlのセキュリティ検証（相対パスのみ許可）
   const callbackUrl = rawCallbackUrl.startsWith("/") ? rawCallbackUrl : "/dashboard";
 
@@ -62,9 +62,7 @@ function LoginForm() {
             </div>
             <div>
               <CardTitle className="text-xl font-bold">ログイン</CardTitle>
-              <CardDescription className="text-sm">
-                管理コンソールにアクセス
-              </CardDescription>
+              <CardDescription className="text-sm">管理コンソールにアクセス</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -134,14 +132,16 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          読み込み中...
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            読み込み中...
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

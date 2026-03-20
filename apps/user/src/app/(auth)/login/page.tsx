@@ -39,13 +39,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50" style={{ colorScheme: "light" }}>
+    <div
+      className="min-h-screen flex items-center justify-center bg-gray-50"
+      style={{ colorScheme: "light" }}
+    >
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow text-gray-900">
         <div className="text-center">
           <h1 className="text-3xl font-bold">ログイン</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            アカウントにサインインしてください
-          </p>
+          <p className="mt-2 text-sm text-gray-600">アカウントにサインインしてください</p>
         </div>
 
         {error && (
@@ -56,9 +57,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              メールアドレス
-            </label>
+            <label className="block text-sm font-medium text-gray-700">メールアドレス</label>
             <input
               type="email"
               value={email}
@@ -70,9 +69,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              パスワード
-            </label>
+            <label className="block text-sm font-medium text-gray-700">パスワード</label>
             <input
               type="password"
               value={password}
@@ -93,10 +90,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-gray-600">
           アカウントをお持ちでない方は{" "}
-          <Link
-            href="/register"
-            className="font-medium text-blue-600 hover:text-blue-500"
-          >
+          <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
             新規登録
           </Link>
         </p>

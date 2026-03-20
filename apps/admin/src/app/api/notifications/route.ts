@@ -17,9 +17,7 @@ export const GET = withApiHandler(
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(
-      searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT),
-    );
+    const limit = parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT));
 
     logger.info("Fetching admin notifications", { page, limit });
 
@@ -41,10 +39,9 @@ export const POST = withApiHandler(
     const result = await createAdminNotification(validated, user.id);
 
     logger.info("Admin notification created", { id: result.notification.id });
-    return NextResponse.json(
-      successResponse(result, "通知が正常に作成されました"),
-      { status: 201 },
-    );
+    return NextResponse.json(successResponse(result, "通知が正常に作成されました"), {
+      status: 201,
+    });
   },
   { rateLimit: RATE_LIMITS.POST, operationName: "通知の作成" },
 );

@@ -143,9 +143,7 @@ export function AdminCreateForm() {
             name="password"
             id={passwordId}
           />
-          <p className="mt-1 text-xs text-gray-500">
-            8文字以上、英字と数字を含む必要があります
-          </p>
+          <p className="mt-1 text-xs text-gray-500">8文字以上、英字と数字を含む必要があります</p>
         </div>
 
         <div>
@@ -159,11 +157,7 @@ export function AdminCreateForm() {
 
         {/* ボタン */}
         <div className="flex gap-4">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            aria-busy={isSubmitting}
-          >
+          <Button type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
             {isSubmitting ? "作成中..." : "作成"}
           </Button>
           <Button

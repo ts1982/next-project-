@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import type React from "react";
 import { useId, useState, useTransition } from "react";
@@ -81,12 +81,17 @@ export const UserEditModal = ({ user }: UserEditModalProps) => {
   };
 
   return (
-    <Sheet open={open} onOpenChange={(next) => {
-      setOpen(next);
-      if (!next) resetState();
-    }}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) resetState();
+      }}
+    >
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm">編集</Button>
+        <Button variant="outline" size="sm">
+          編集
+        </Button>
       </SheetTrigger>
       <SheetContent>
         <SheetHeader>

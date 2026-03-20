@@ -11,7 +11,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallbackUrl = searchParams.get("callbackUrl") || "/dashboard";
-  
+
   // callbackUrlのセキュリティ検証（相対パスのみ許可）
   const callbackUrl = rawCallbackUrl.startsWith("/") ? rawCallbackUrl : "/dashboard";
 
@@ -51,9 +51,7 @@ function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">ログイン</CardTitle>
-          <CardDescription>
-            アカウントにログインしてください
-          </CardDescription>
+          <CardDescription>アカウントにログインしてください</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -85,16 +83,8 @@ function LoginForm() {
                 disabled={isLoading}
               />
             </div>
-            {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
-                {error}
-              </div>
-            )}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "ログイン中..." : "ログイン"}
             </Button>
           </form>
@@ -109,11 +99,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">読み込み中...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <div className="text-center">読み込み中...</div>
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

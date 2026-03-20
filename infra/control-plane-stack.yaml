@@ -16,7 +16,6 @@ Parameters:
     Description: "Hours after start to auto-stop"
 
 Resources:
-
   # ----------------------------------------------------------
   # Lambda Execution Role
   # ----------------------------------------------------------

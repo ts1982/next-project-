@@ -1,48 +1,48 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 
 interface RoleOption {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 interface RoleSelectProps {
-  value: string
-  onChange: (value: string) => void
-  id?: string
-  disabled?: boolean
-  error?: string
+  value: string;
+  onChange: (value: string) => void;
+  id?: string;
+  disabled?: boolean;
+  error?: string;
 }
 
 export function RoleSelect({ value, onChange, id, disabled, error }: RoleSelectProps) {
-  const [roles, setRoles] = useState<RoleOption[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [fetchError, setFetchError] = useState(false)
+  const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     async function fetchRoles() {
       try {
-        const res = await fetch("/api/roles")
+        const res = await fetch("/api/roles");
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           setRoles(
             (data.data?.roles ?? []).map((r: { id: string; name: string }) => ({
               id: r.id,
               name: r.name,
             })),
-          )
+          );
         } else {
-          setFetchError(true)
+          setFetchError(true);
         }
       } catch {
-        setFetchError(true)
+        setFetchError(true);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
-    fetchRoles()
-  }, [])
+    fetchRoles();
+  }, []);
 
   return (
     <div>
@@ -71,8 +71,10 @@ export function RoleSelect({ value, onChange, id, disabled, error }: RoleSelectP
         )}
       </select>
       {error && (
-        <p className="text-sm text-red-500 mt-1" role="alert">{error}</p>
+        <p className="text-sm text-red-500 mt-1" role="alert">
+          {error}
+        </p>
       )}
     </div>
-  )
+  );
 }

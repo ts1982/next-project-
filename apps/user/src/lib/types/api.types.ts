@@ -13,10 +13,7 @@ export interface ApiErrorResponse {
 
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
-export function successResponse<T>(
-  data: T,
-  message?: string,
-): ApiSuccessResponse<T> {
+export function successResponse<T>(data: T, message?: string): ApiSuccessResponse<T> {
   return { success: true, data, message };
 }
 

@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { SearchForm } from "@/components/common/search-form"
-import { useUserSearch } from "@/lib/hooks"
+import { SearchForm } from "@/components/common/search-form";
+import { useUserSearch } from "@/lib/hooks";
 
 interface UserSearchProps {
-  defaultValue?: string
+  defaultValue?: string;
 }
 
 export const UserSearch = ({ defaultValue = "" }: UserSearchProps) => {
-  const { search, clear, isPending } = useUserSearch()
+  const { search, clear, isPending } = useUserSearch();
 
   return (
     <SearchForm
@@ -20,5 +20,5 @@ export const UserSearch = ({ defaultValue = "" }: UserSearchProps) => {
       maxWidth="max-w-lg"
       isPending={isPending}
     />
-  )
-}
+  );
+};

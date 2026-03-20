@@ -165,7 +165,7 @@ export const Pagination = ({
               >
                 {pageNum}
               </span>
-            )
+            ),
           )}
         </div>
         <Button

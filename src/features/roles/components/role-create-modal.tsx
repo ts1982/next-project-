@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Shield } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { FormField } from "@/components/common/form-field"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/common/form-field";
 import {
   Dialog,
   DialogContent,
@@ -12,115 +12,111 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { PermissionGrid, type PermissionSelection } from "./permission-grid"
-import { createRoleSchema } from "../schemas/role.schema"
-import type { PermissionDefinition } from "../types/role.types"
-import { ZodError } from "zod"
+} from "@/components/ui/dialog";
+import { PermissionGrid, type PermissionSelection } from "./permission-grid";
+import { createRoleSchema } from "../schemas/role.schema";
+import type { PermissionDefinition } from "../types/role.types";
+import { ZodError } from "zod";
 
 type FormErrors = {
-  name?: string
-  description?: string
-  permissions?: string
-  general?: string
-}
+  name?: string;
+  description?: string;
+  permissions?: string;
+  general?: string;
+};
 
 interface RoleCreateModalProps {
-  isOpen: boolean
-  onClose: () => void
-  permissions: PermissionDefinition[]
+  isOpen: boolean;
+  onClose: () => void;
+  permissions: PermissionDefinition[];
 }
 
-export function RoleCreateModal({
-  isOpen,
-  onClose,
-  permissions,
-}: RoleCreateModalProps) {
-  const router = useRouter()
+export function RoleCreateModal({ isOpen, onClose, permissions }: RoleCreateModalProps) {
+  const router = useRouter();
 
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [selectedPermissions, setSelectedPermissions] = useState<PermissionSelection[]>([])
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState<PermissionSelection[]>([]);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const resetForm = () => {
-    setName("")
-    setDescription("")
-    setSelectedPermissions([])
-    setErrors({})
-  }
+    setName("");
+    setDescription("");
+    setSelectedPermissions([]);
+    setErrors({});
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrors({})
-    setIsSubmitting(true)
+    e.preventDefault();
+    setErrors({});
+    setIsSubmitting(true);
 
     try {
       const payload = {
         name,
         description: description || undefined,
         permissions: selectedPermissions,
-      }
+      };
 
       // クライアントサイドバリデーション
-      createRoleSchema.parse(payload)
+      createRoleSchema.parse(payload);
 
       const response = await fetch("/api/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      })
+      });
 
-      let data: { error?: string; fields?: FormErrors } = {}
+      let data: { error?: string; fields?: FormErrors } = {};
       try {
-        data = await response.json()
+        data = await response.json();
       } catch {
         if (!response.ok) {
-          setErrors({ general: "サーバーエラーが発生しました" })
-          return
+          setErrors({ general: "サーバーエラーが発生しました" });
+          return;
         }
       }
 
       if (!response.ok) {
         if (response.status === 400 && data.fields) {
-          setErrors(data.fields)
+          setErrors(data.fields);
         } else if (response.status === 409) {
-          setErrors({ name: data.error })
+          setErrors({ name: data.error });
         } else {
-          setErrors({ general: data.error || "エラーが発生しました" })
+          setErrors({ general: data.error || "エラーが発生しました" });
         }
-        return
+        return;
       }
 
-      router.refresh()
-      onClose()
-      resetForm()
+      router.refresh();
+      onClose();
+      resetForm();
     } catch (error) {
       if (error instanceof ZodError) {
-        const fieldErrors: FormErrors = {}
+        const fieldErrors: FormErrors = {};
         error.issues.forEach((err) => {
-          const field = err.path[0]?.toString() as keyof FormErrors
+          const field = err.path[0]?.toString() as keyof FormErrors;
           if (field) {
-            fieldErrors[field] = err.message
+            fieldErrors[field] = err.message;
           }
-        })
-        setErrors(fieldErrors)
+        });
+        setErrors(fieldErrors);
       } else {
-        setErrors({ general: "予期しないエラーが発生しました" })
+        setErrors({ general: "予期しないエラーが発生しました" });
       }
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
-          onClose()
-          resetForm()
+          onClose();
+          resetForm();
         }
       }}
     >
@@ -130,9 +126,7 @@ export function RoleCreateModal({
             <Shield className="h-5 w-5" />
             新規ロール作成
           </DialogTitle>
-          <DialogDescription>
-            新しいロールを作成し、パーミッションを割り当てます
-          </DialogDescription>
+          <DialogDescription>新しいロールを作成し、パーミッションを割り当てます</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} aria-label="ロール作成フォーム">
@@ -196,8 +190,8 @@ export function RoleCreateModal({
               type="button"
               variant="outline"
               onClick={() => {
-                onClose()
-                resetForm()
+                onClose();
+                resetForm();
               }}
               disabled={isSubmitting}
             >
@@ -210,5 +204,5 @@ export function RoleCreateModal({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

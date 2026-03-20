@@ -46,18 +46,8 @@ export function usePermissions() {
    * 特定リソースインスタンスへのアクセス権があるか
    * scope: "own" の場合は resourceOwnerId === currentUserId を検証
    */
-  function canOwn(
-    resource: Resource,
-    action: Action,
-    resourceOwnerId?: string,
-  ): boolean {
-    return canAccessResource(
-      permissions,
-      resource,
-      action,
-      resourceOwnerId,
-      currentUserId,
-    );
+  function canOwn(resource: Resource, action: Action, resourceOwnerId?: string): boolean {
+    return canAccessResource(permissions, resource, action, resourceOwnerId, currentUserId);
   }
 
   return {

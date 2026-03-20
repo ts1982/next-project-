@@ -95,8 +95,7 @@ export function convertToUTC(dateTime: string | Date, timezone: string): Date {
     throw new Error(`Invalid timezone: ${timezone}`);
   }
 
-  const localDate =
-    typeof dateTime === "string" ? new Date(dateTime) : dateTime;
+  const localDate = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
   return fromZonedTime(localDate, timezone);
 }
 
@@ -106,16 +105,12 @@ export function convertToUTC(dateTime: string | Date, timezone: string): Date {
  * @param timezone - IANAタイムゾーン文字列
  * @returns ローカルタイムのDateオブジェクト
  */
-export function convertFromUTC(
-  utcDateTime: string | Date,
-  timezone: string,
-): Date {
+export function convertFromUTC(utcDateTime: string | Date, timezone: string): Date {
   if (!isValidTimezone(timezone)) {
     throw new Error(`Invalid timezone: ${timezone}`);
   }
 
-  const utcDate =
-    typeof utcDateTime === "string" ? new Date(utcDateTime) : utcDateTime;
+  const utcDate = typeof utcDateTime === "string" ? new Date(utcDateTime) : utcDateTime;
   return toZonedTime(utcDate, timezone);
 }
 

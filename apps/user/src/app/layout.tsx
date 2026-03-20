@@ -9,11 +9,7 @@ export const metadata: Metadata = {
   description: "通知確認アプリ",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <body>

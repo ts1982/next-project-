@@ -96,9 +96,7 @@ export function usePushNotification(): UsePushNotificationReturn {
 
         if (subscription) {
           // ブラウザに subscription がある場合、サーバー側も確認
-          const existsOnServer = await checkServerSubscription(
-            subscription.endpoint,
-          );
+          const existsOnServer = await checkServerSubscription(subscription.endpoint);
           if (existsOnServer) {
             setIsSubscribed(true);
           } else {
@@ -144,8 +142,7 @@ export function usePushNotification(): UsePushNotificationReturn {
         return;
       }
 
-      const registration =
-        registrationRef.current ?? (await navigator.serviceWorker.ready);
+      const registration = registrationRef.current ?? (await navigator.serviceWorker.ready);
       registrationRef.current = registration;
 
       // 通知許可をリクエスト
@@ -159,9 +156,7 @@ export function usePushNotification(): UsePushNotificationReturn {
       if (!subscription) {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            vapidPublicKey,
-          ) as BufferSource,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
         });
       }
 
@@ -203,8 +198,7 @@ export function usePushNotification(): UsePushNotificationReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const registration =
-        registrationRef.current ?? (await navigator.serviceWorker.ready);
+      const registration = registrationRef.current ?? (await navigator.serviceWorker.ready);
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
@@ -217,11 +211,7 @@ export function usePushNotification(): UsePushNotificationReturn {
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => null);
-          console.error(
-            "[push] Unsubscribe server response:",
-            res.status,
-            errorData,
-          );
+          console.error("[push] Unsubscribe server response:", res.status, errorData);
           setError("サーバーからの登録解除に失敗しました");
           return;
         }

@@ -6,11 +6,7 @@ import { withApiHandler } from "@/lib/middleware/api-handler";
 import { successResponse, errorResponse } from "@/lib/types/api.types";
 
 const registerSchema = z.object({
-  email: z
-    .string()
-    .email("有効なメールアドレスを入力してください")
-    .toLowerCase()
-    .trim(),
+  email: z.string().email("有効なメールアドレスを入力してください").toLowerCase().trim(),
   name: z
     .string()
     .min(1, "名前を入力してください")
@@ -61,8 +57,7 @@ export const POST = withApiHandler(async (request) => {
     select: { id: true, email: true, name: true, createdAt: true },
   });
 
-  return NextResponse.json(
-    successResponse({ user }, "アカウントが作成されました"),
-    { status: 201 },
-  );
+  return NextResponse.json(successResponse({ user }, "アカウントが作成されました"), {
+    status: 201,
+  });
 });

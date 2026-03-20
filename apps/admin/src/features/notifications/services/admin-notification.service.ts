@@ -133,10 +133,7 @@ export async function createAdminNotification(
   }
 
   // 予約配信: EventBridge Scheduler に 1 件登録
-  const schedulerName = await registerScheduler(
-    notification.id,
-    scheduledAtUTC,
-  );
+  const schedulerName = await registerScheduler(notification.id, scheduledAtUTC);
 
   // Scheduler 作成成功後の DB 更新で失敗した場合に備え、補償処理を入れる
   try {
@@ -193,8 +190,7 @@ export async function updateAdminNotification(
   }
 
   // scheduledAt が変更される場合は旧スケジューラ名を保持（DB 更新成功後にキャンセル）
-  const oldSchedulerName =
-    scheduledAt !== undefined ? existing.schedulerName : null;
+  const oldSchedulerName = scheduledAt !== undefined ? existing.schedulerName : null;
 
   const notification = await prisma.$transaction(async (tx) => {
     // SPECIFIC の targets を更新
@@ -315,10 +311,7 @@ const schedulerClient = new SchedulerClient({
  * EventBridge Scheduler に通知配信スケジュールを 1 件登録し、スケジュール名を返す。
  * ActionAfterCompletion: DELETE により実行後に自動削除される。
  */
-async function registerScheduler(
-  notificationId: string,
-  scheduledAt: Date,
-): Promise<string> {
+async function registerScheduler(notificationId: string, scheduledAt: Date): Promise<string> {
   const lambdaArn = process.env.NOTIFICATION_LAMBDA_ARN;
   const roleArn = process.env.SCHEDULER_EXECUTION_ROLE_ARN;
 
@@ -337,9 +330,7 @@ async function registerScheduler(
       }, safeDelay);
       return `local-mock-${notificationId}`;
     }
-    throw new Error(
-      "NOTIFICATION_LAMBDA_ARN / SCHEDULER_EXECUTION_ROLE_ARN が未設定です",
-    );
+    throw new Error("NOTIFICATION_LAMBDA_ARN / SCHEDULER_EXECUTION_ROLE_ARN が未設定です");
   }
 
   const scheduleName = `notification-${notificationId}`;
@@ -371,9 +362,7 @@ async function registerScheduler(
  */
 async function cancelScheduler(schedulerName: string): Promise<void> {
   try {
-    await schedulerClient.send(
-      new DeleteScheduleCommand({ Name: schedulerName }),
-    );
+    await schedulerClient.send(new DeleteScheduleCommand({ Name: schedulerName }));
     console.log(`[scheduler] Cancelled: ${schedulerName}`);
   } catch (err) {
     if (err instanceof ResourceNotFoundException) {

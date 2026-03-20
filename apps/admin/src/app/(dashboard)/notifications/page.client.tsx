@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
-import { useState, useCallback } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Bell, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Pagination } from "@/components/common/pagination"
-import { AdminNotificationTable } from "@/features/notifications/components/admin-notification-table"
-import { AdminNotificationCreateModal } from "@/features/notifications/components/admin-notification-create-modal"
-import { AdminNotificationDetailModal } from "@/features/notifications/components/admin-notification-detail-modal"
-import { AdminNotificationEditModal } from "@/features/notifications/components/admin-notification-edit-modal"
-import { usePermissions } from "@/lib/hooks/use-permissions"
-import type { AdminNotification } from "@/features/notifications/types/admin-notification.types"
+import { useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Bell, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/common/pagination";
+import { AdminNotificationTable } from "@/features/notifications/components/admin-notification-table";
+import { AdminNotificationCreateModal } from "@/features/notifications/components/admin-notification-create-modal";
+import { AdminNotificationDetailModal } from "@/features/notifications/components/admin-notification-detail-modal";
+import { AdminNotificationEditModal } from "@/features/notifications/components/admin-notification-edit-modal";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import type { AdminNotification } from "@/features/notifications/types/admin-notification.types";
 
 interface NotificationsClientPageProps {
-  initialNotifications: AdminNotification[]
+  initialNotifications: AdminNotification[];
   initialPagination: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
-  timezone: string
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  timezone: string;
 }
 
 export function NotificationsClientPage({
@@ -28,40 +28,40 @@ export function NotificationsClientPage({
   initialPagination,
   timezone,
 }: NotificationsClientPageProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [selectedNotification, setSelectedNotification] = useState<AdminNotification | null>(null)
-  const [editingNotification, setEditingNotification] = useState<AdminNotification | null>(null)
-  const { can } = usePermissions()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<AdminNotification | null>(null);
+  const [editingNotification, setEditingNotification] = useState<AdminNotification | null>(null);
+  const { can } = usePermissions();
 
-  const canCreate = can("notifications", "create")
+  const canCreate = can("notifications", "create");
 
   const handlePageChange = useCallback(
     (newPage: number) => {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set("page", String(newPage))
-      router.push(`?${params.toString()}`)
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("page", String(newPage));
+      router.push(`?${params.toString()}`);
     },
     [router, searchParams],
-  )
+  );
 
   const handleCreated = useCallback(() => {
-    router.refresh()
-  }, [router])
+    router.refresh();
+  }, [router]);
 
   const handleDeleted = useCallback(() => {
-    router.refresh()
-  }, [router])
+    router.refresh();
+  }, [router]);
 
   const handleUpdated = useCallback(() => {
-    router.refresh()
-  }, [router])
+    router.refresh();
+  }, [router]);
 
   const handleEditClick = useCallback(() => {
-    setEditingNotification(selectedNotification)
-    setSelectedNotification(null)
-  }, [selectedNotification])
+    setEditingNotification(selectedNotification);
+    setSelectedNotification(null);
+  }, [selectedNotification]);
 
   return (
     <div className="space-y-6">
@@ -78,9 +78,7 @@ export function NotificationsClientPage({
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground mt-1">
-          ユーザーへの通知を作成・管理できます
-        </p>
+        <p className="text-muted-foreground mt-1">ユーザーへの通知を作成・管理できます</p>
       </div>
 
       <div className="space-y-4">
@@ -127,5 +125,5 @@ export function NotificationsClientPage({
         timezone={timezone}
       />
     </div>
-  )
+  );
 }

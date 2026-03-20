@@ -10,29 +10,18 @@ export const GET = withApiHandler(
   async (request, { clientIp, params }) => {
     const { id: userId } = params;
 
-    const { user: currentUser, scope } = await requirePermission(
-      "users",
-      "read",
-      userId,
-    );
+    const { user: currentUser, scope } = await requirePermission("users", "read", userId);
 
     if (scope === "own" && currentUser.id !== userId) {
       return NextResponse.json(
-        errorResponse(
-          "この操作を行う権限がありません",
-          undefined,
-          "FORBIDDEN",
-        ),
+        errorResponse("この操作を行う権限がありません", undefined, "FORBIDDEN"),
         { status: 403 },
       );
     }
 
     const searchParams = request.nextUrl.searchParams;
     const cursor = searchParams.get("cursor") || undefined;
-    const limit = Math.min(
-      Math.max(parseInt(searchParams.get("limit") || "20"), 1),
-      100,
-    );
+    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20"), 1), 100);
 
     logger.info("Fetching notifications", { userId, cursor, limit, clientIp });
 

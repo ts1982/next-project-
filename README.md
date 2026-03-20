@@ -130,6 +130,7 @@ npm run dev
 ## 📝 使用可能なコマンド
 
 ### 開発
+
 ```bash
 make dev              # 開発サーバー起動
 make build            # プロダクションビルド
@@ -138,6 +139,7 @@ make lint             # ESLint実行
 ```
 
 ### データベース
+
 ```bash
 make db-up            # PostgreSQLコンテナ起動
 make db-down          # PostgreSQLコンテナ停止
@@ -147,6 +149,7 @@ make db-shell         # PostgreSQLシェル起動
 ```
 
 ### Prisma
+
 ```bash
 make prisma-migrate   # マイグレーション作成・適用
 make prisma-reset     # データベースリセット
@@ -158,6 +161,7 @@ make seed             # シードデータ投入
 ```
 
 ### ユーティリティ
+
 ```bash
 make clean            # ビルド成果物削除
 make install          # 依存関係インストール
@@ -167,6 +171,7 @@ make update           # 依存関係更新
 ## 🎯 主要機能
 
 ### ユーザー管理
+
 - ✅ ユーザー一覧表示（ページネーション付き）
 - ✅ ユーザー検索（名前・メールアドレス）
 - ✅ ユーザー新規作成
@@ -176,6 +181,7 @@ make update           # 依存関係更新
   - 重複メール検証
 
 ### API エンドポイント
+
 - `GET /api/users` - ユーザー一覧取得
 - `POST /api/users` - ユーザー作成
 
@@ -189,6 +195,7 @@ make update           # 依存関係更新
 ## 🧪 開発ツール
 
 ### Prisma REPL
+
 データベースと対話的に操作できます：
 
 ```bash
@@ -198,11 +205,15 @@ npm run repl
 ```
 
 ```javascript
-prisma> await prisma.user.findMany()
-prisma> await prisma.user.create({ data: { email: "test@example.com", name: "Test", password: "..." }})
+prisma > (await prisma.user.findMany());
+prisma >
+  (await prisma.user.create({
+    data: { email: "test@example.com", name: "Test", password: "..." },
+  }));
 ```
 
 ### Prisma Studio
+
 GUIでデータベースを管理：
 
 ```bash
@@ -212,6 +223,7 @@ make prisma-studio
 ## 📚 アーキテクチャ
 
 ### Feature-based Architecture
+
 機能ごとにコードを整理し、高い凝集度と低い結合度を実現：
 
 - 各機能（`features/users/`など）は独立したモジュール
@@ -219,12 +231,14 @@ make prisma-studio
 - `index.ts` でPublic APIを明示的にエクスポート
 
 ### Route Groups
+
 Next.js Route Groupsでレイアウトを分離：
 
 - `(dashboard)` - 認証済みユーザー向け
 - URL構造に影響を与えずにレイアウトを切り替え可能
 
 ### 型安全性
+
 - Prisma Client で型安全なDB操作
 - Zod で実行時バリデーション + 型推論
 - 環境変数の型チェック（`lib/config/env.ts`）
@@ -247,4 +261,3 @@ MIT
 - [Prisma Documentation](https://www.prisma.io/docs)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Tailwind CSS](https://tailwindcss.com)
-

@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Menu, Search, Bell, User, LogOut } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useEffect, useState } from "react";
+import { Menu, Search, Bell, User, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,
@@ -11,41 +11,36 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet"
-import { useSession, signOut } from "next-auth/react"
-import Link from "next/link"
+} from "@/components/ui/sheet";
+import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 
 interface HeaderProps {
-  onMenuClick: () => void
+  onMenuClick: () => void;
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
-  const { data: session } = useSession()
+  const { data: session } = useSession();
   // Radix(Dialog/Sheet)はSSR時にIDがズレてhydration mismatchになることがあるため、
   // マウント後にのみ描画して初期HTMLとクライアント初期描画を一致させる。
-  const [mounted, setMounted] = useState(false)
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydration mismatch回避の定番パターン
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/login" })
-  }
+    await signOut({ callbackUrl: "/login" });
+  };
 
-  const userInitial = session?.user?.name?.charAt(0).toUpperCase() || "U"
+  const userInitial = session?.user?.name?.charAt(0).toUpperCase() || "U";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={onMenuClick}
-          >
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick}>
             <Menu className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
@@ -68,7 +63,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
               <SheetTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar>
-                    <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || "User"} />
+                    <AvatarImage
+                      src={session?.user?.image || undefined}
+                      alt={session?.user?.name || "User"}
+                    />
                     <AvatarFallback>{userInitial}</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -78,9 +76,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                   <SheetTitle>ユーザーメニュー</SheetTitle>
                   <SheetDescription>
                     {session?.user?.name && (
-                      <span className="block mt-2 text-sm">
-                        ログイン中: {session.user.name}
-                      </span>
+                      <span className="block mt-2 text-sm">ログイン中: {session.user.name}</span>
                     )}
                     {session?.user?.email && (
                       <span className="block text-xs text-muted-foreground">
@@ -96,11 +92,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                       設定
                     </Button>
                   </Link>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={handleLogout}
-                  >
+                  <Button variant="outline" className="w-full justify-start" onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     ログアウト
                   </Button>
@@ -122,5 +114,5 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         </div>
       </div>
     </header>
-  )
-}
+  );
+};

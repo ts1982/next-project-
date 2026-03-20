@@ -7,7 +7,5 @@ import { withApiHandler } from "@/lib/middleware/api-handler";
 export const POST = withApiHandler(async () => {
   const { user } = await requireUser();
   const result = await markAllNotificationsAsRead(user.id);
-  return NextResponse.json(
-    successResponse(result, `${result.updatedCount}件を既読にしました`),
-  );
+  return NextResponse.json(successResponse(result, `${result.updatedCount}件を既読にしました`));
 });

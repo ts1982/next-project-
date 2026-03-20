@@ -24,7 +24,7 @@ export function PublicationStatusBadge({
   // ステータスに応じてスタイルを設定（className のみで管理）
   const getBadgeClassName = () => {
     let baseClass = "";
-    
+
     if (status === "公開中") {
       baseClass = "bg-green-500 hover:bg-green-600 text-white border-green-500";
     } else if (status.startsWith("予約公開")) {
@@ -34,13 +34,9 @@ export function PublicationStatusBadge({
     } else {
       baseClass = "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-500";
     }
-    
+
     return `${baseClass} ${className || ""}`;
   };
 
-  return (
-    <Badge className={getBadgeClassName()}>
-      {status}
-    </Badge>
-  );
+  return <Badge className={getBadgeClassName()}>{status}</Badge>;
 }

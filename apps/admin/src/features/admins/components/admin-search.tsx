@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { SearchForm } from "@/components/common/search-form"
-import { useAdminSearch } from "@/lib/hooks"
+import { SearchForm } from "@/components/common/search-form";
+import { useAdminSearch } from "@/lib/hooks";
 
 interface AdminSearchProps {
-  defaultValue?: string
+  defaultValue?: string;
 }
 
 export const AdminSearch = ({ defaultValue = "" }: AdminSearchProps) => {
-  const { search, clear, isPending } = useAdminSearch()
+  const { search, clear, isPending } = useAdminSearch();
 
   return (
     <SearchForm
@@ -20,5 +20,5 @@ export const AdminSearch = ({ defaultValue = "" }: AdminSearchProps) => {
       maxWidth="max-w-lg"
       isPending={isPending}
     />
-  )
-}
+  );
+};

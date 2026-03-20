@@ -5,10 +5,7 @@ import type {
   CreateUserResponse,
   UpdateUserResponse,
 } from "@/features/users/types/user.types";
-import type {
-  CreateUserInput,
-  UpdateUserInput,
-} from "@/features/users/schemas/user.schema";
+import type { CreateUserInput, UpdateUserInput } from "@/features/users/schemas/user.schema";
 import {
   createUserSchema,
   updateUserSchema,
@@ -30,10 +27,7 @@ const USER_SELECT = {
   updatedAt: true,
 } as const;
 
-export const getUserList = async (
-  search: string,
-  page: number,
-): Promise<UserListResponse> => {
+export const getUserList = async (search: string, page: number): Promise<UserListResponse> => {
   const limit = PAGINATION.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
 
@@ -68,9 +62,7 @@ export const getUserList = async (
   };
 };
 
-export const createUser = async (
-  input: CreateUserInput,
-): Promise<CreateUserResponse> => {
+export const createUser = async (input: CreateUserInput): Promise<CreateUserResponse> => {
   // zodでバリデーション
   const validated = createUserSchema.parse(input);
 

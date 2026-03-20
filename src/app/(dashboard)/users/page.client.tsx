@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Users as UsersIcon, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Pagination } from "@/components/common/pagination"
-import { UserTable } from "@/features/users/components/user-table"
-import { UserSearch } from "@/features/users/components/user-search"
-import { UserCreateModal } from "@/features/users/components/user-create-modal"
-import { usePermissions } from "@/lib/hooks/use-permissions"
-import type { User } from "@/features/users"
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Users as UsersIcon, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/common/pagination";
+import { UserTable } from "@/features/users/components/user-table";
+import { UserSearch } from "@/features/users/components/user-search";
+import { UserCreateModal } from "@/features/users/components/user-create-modal";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import type { User } from "@/features/users";
 
 interface UsersClientPageProps {
-  initialUsers: User[]
-  initialSearch: string
+  initialUsers: User[];
+  initialSearch: string;
   initialPagination: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
-  timezone: string
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  timezone: string;
 }
 
 export function UsersClientPage({
@@ -29,18 +29,18 @@ export function UsersClientPage({
   initialPagination,
   timezone,
 }: UsersClientPageProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const { can } = usePermissions()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { can } = usePermissions();
 
-  const canCreate = can("users", "create")
+  const canCreate = can("users", "create");
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", String(newPage))
-    router.push(`?${params.toString()}`)
-  }
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(newPage));
+    router.push(`?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -77,11 +77,8 @@ export function UsersClientPage({
       </div>
 
       {canCreate && (
-        <UserCreateModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
-        />
+        <UserCreateModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
       )}
     </div>
-  )
+  );
 }

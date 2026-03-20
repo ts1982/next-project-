@@ -1,26 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Shield, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { RoleTable } from "@/features/roles/components/role-table"
-import { RoleCreateModal } from "@/features/roles/components/role-create-modal"
-import { usePermissions } from "@/lib/hooks/use-permissions"
-import type { RoleWithPermissions, PermissionDefinition } from "@/features/roles"
+import { useState } from "react";
+import { Shield, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RoleTable } from "@/features/roles/components/role-table";
+import { RoleCreateModal } from "@/features/roles/components/role-create-modal";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import type { RoleWithPermissions, PermissionDefinition } from "@/features/roles";
 
 interface RolesClientPageProps {
-  initialRoles: RoleWithPermissions[]
-  permissions: PermissionDefinition[]
+  initialRoles: RoleWithPermissions[];
+  permissions: PermissionDefinition[];
 }
 
-export function RolesClientPage({
-  initialRoles,
-  permissions,
-}: RolesClientPageProps) {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const { can } = usePermissions()
+export function RolesClientPage({ initialRoles, permissions }: RolesClientPageProps) {
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { can } = usePermissions();
 
-  const canCreate = can("roles", "create")
+  const canCreate = can("roles", "create");
 
   return (
     <div className="space-y-6">
@@ -37,9 +34,7 @@ export function RolesClientPage({
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground mt-1">
-          ロールとパーミッションを管理できます
-        </p>
+        <p className="text-muted-foreground mt-1">ロールとパーミッションを管理できます</p>
       </div>
 
       <RoleTable roles={initialRoles} permissions={permissions} />
@@ -52,5 +47,5 @@ export function RolesClientPage({
         />
       )}
     </div>
-  )
+  );
 }

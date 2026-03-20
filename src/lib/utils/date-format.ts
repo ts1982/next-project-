@@ -39,10 +39,7 @@ export function formatTime(date: Date | string, timezone: string): string {
  * 詳細な日時フォーマット（秒まで、タイムゾーン表示付き）
  * 例: "2024/01/15 14:30:45 JST"
  */
-export function formatDateTimeDetailed(
-  date: Date | string,
-  timezone: string,
-): string {
+export function formatDateTimeDetailed(date: Date | string, timezone: string): string {
   const formatted = formatInTimezone(date, timezone, "yyyy/MM/dd HH:mm:ss");
   const abbreviation = getTimezoneAbbreviation(timezone);
   return `${formatted} ${abbreviation}`;
@@ -52,10 +49,7 @@ export function formatDateTimeDetailed(
  * 詳細な日時フォーマット（秒まで、完全なタイムゾーン名を括弧付きで表示）
  * 例: "2024/01/15 14:30:45 (Asia/Tokyo)"
  */
-export function formatDateTimeWithZone(
-  date: Date | string,
-  timezone: string,
-): string {
+export function formatDateTimeWithZone(date: Date | string, timezone: string): string {
   const formatted = formatInTimezone(date, timezone, "yyyy/MM/dd HH:mm:ss");
   return `${formatted} (${timezone})`;
 }

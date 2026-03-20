@@ -105,8 +105,6 @@ async function sendWebPush(
     await prisma.pushSubscription.deleteMany({
       where: { endpoint: { in: expiredEndpoints } },
     });
-    console.log(
-      `[web-push] Cleaned up ${expiredEndpoints.length} expired subscriptions`,
-    );
+    console.log(`[web-push] Cleaned up ${expiredEndpoints.length} expired subscriptions`);
   }
 }

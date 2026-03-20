@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getStoreById,
-  updateStore,
-  deleteStore,
-} from "@/features/stores/services/store.service";
+import { getStoreById, updateStore, deleteStore } from "@/features/stores/services/store.service";
 import { updateStoreSchema } from "@/features/stores/schemas/store.schema";
 import { successResponse, errorResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
@@ -68,9 +64,7 @@ export const DELETE = withApiHandler(
     await deleteStore(storeId);
 
     logger.info("Store deleted successfully", { storeId, clientIp });
-    return NextResponse.json(
-      successResponse({ id: storeId }, "店舗を削除しました"),
-    );
+    return NextResponse.json(successResponse({ id: storeId }, "店舗を削除しました"));
   },
   { rateLimit: RATE_LIMITS.STRICT, operationName: "店舗の削除" },
 );

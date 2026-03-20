@@ -5,10 +5,7 @@ import type {
   CreateAdminResponse,
   UpdateAdminResponse,
 } from "@/features/admins/types/admin.types";
-import type {
-  CreateAdminInput,
-  UpdateAdminInput,
-} from "@/features/admins/schemas/admin.schema";
+import type { CreateAdminInput, UpdateAdminInput } from "@/features/admins/schemas/admin.schema";
 import {
   createAdminSchema,
   updateAdminSchema,
@@ -29,10 +26,7 @@ const ADMIN_SELECT = {
   updatedAt: true,
 } as const;
 
-export const getAdminList = async (
-  search: string,
-  page: number,
-): Promise<AdminListResponse> => {
+export const getAdminList = async (search: string, page: number): Promise<AdminListResponse> => {
   const limit = PAGINATION.DEFAULT_LIMIT;
   const skip = (page - 1) * limit;
 
@@ -67,9 +61,7 @@ export const getAdminList = async (
   };
 };
 
-export const createAdmin = async (
-  input: CreateAdminInput,
-): Promise<CreateAdminResponse> => {
+export const createAdmin = async (input: CreateAdminInput): Promise<CreateAdminResponse> => {
   // zodでバリデーション
   const validated = createAdminSchema.parse(input);
 

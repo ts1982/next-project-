@@ -1,15 +1,18 @@
 ## Tech Stack
+
 - pnpm workspaces + Turborepo
 - Next.js 16 / React 19 / TypeScript
 - Prisma (`packages/database`) + PostgreSQL
 - Tailwind CSS + shadcn/ui
 
 ## Monorepo Layout
+
 - `apps/admin`: 管理画面（3000）
 - `apps/user`: ユーザー向け画面 + custom server（3001 / WS 同一ポート）
 - `packages/database`: Prisma schema / seed / client
 
 ## Commands
+
 - `pnpm lint` - lint 実行
 - `pnpm build` - build 実行
 - `pnpm dev --filter=@repo/admin` - admin 起動
@@ -19,6 +22,7 @@
 - `pnpm db:seed` - seed 実行
 
 ## Working Rules
+
 - 最小差分で変更し、影響範囲外のリファクタを避ける。
 - 新規 `any` 導入は避け、型安全を維持する。
 - UI は既存コンポーネント（`components/ui`）を優先再利用する。
@@ -26,6 +30,7 @@
 - API では入力バリデーションと認可を先に確認する。
 
 ## Boundaries
+
 - ✅ Always:
   - 指定範囲のみを編集
   - ワークスペース単位で lint/build を確認

@@ -3,11 +3,7 @@ import { PAGINATION } from "@/lib/constants/pagination";
 import { calculateIsPublic } from "@/lib/utils/publication";
 import { convertToUTC, getDefaultTimezone } from "@/lib/utils/timezone";
 import type { Store as PrismaStore } from "@prisma/client";
-import type {
-  Store,
-  CreateStoreInput,
-  UpdateStoreInput,
-} from "../types/store.types";
+import type { Store, CreateStoreInput, UpdateStoreInput } from "../types/store.types";
 
 /**
  * Prismaの店舗データをAPIレスポンス形式に変換
@@ -22,9 +18,7 @@ function transformStoreToResponse(store: PrismaStore): Store {
     phone: store.phone,
     email: store.email,
     publishedAt: store.publishedAt ? store.publishedAt.toISOString() : null,
-    unpublishedAt: store.unpublishedAt
-      ? store.unpublishedAt.toISOString()
-      : null,
+    unpublishedAt: store.unpublishedAt ? store.unpublishedAt.toISOString() : null,
     isPublic: calculateIsPublic(store.publishedAt, store.unpublishedAt),
     createdAt: store.createdAt.toISOString(),
     updatedAt: store.updatedAt.toISOString(),
@@ -75,12 +69,8 @@ export async function getStoreById(id: number): Promise<Store | null> {
 export async function createStore(data: CreateStoreInput): Promise<Store> {
   // タイムゾーンとともに日時が提供された場合、UTCに変換
   const timezone = data.timezone || getDefaultTimezone();
-  const publishedAt = data.publishedAt
-    ? convertToUTC(data.publishedAt, timezone)
-    : null;
-  const unpublishedAt = data.unpublishedAt
-    ? convertToUTC(data.unpublishedAt, timezone)
-    : null;
+  const publishedAt = data.publishedAt ? convertToUTC(data.publishedAt, timezone) : null;
+  const unpublishedAt = data.unpublishedAt ? convertToUTC(data.unpublishedAt, timezone) : null;
 
   const store = await prisma.store.create({
     data: {
@@ -97,10 +87,7 @@ export async function createStore(data: CreateStoreInput): Promise<Store> {
   return transformStoreToResponse(store);
 }
 
-export async function updateStore(
-  id: number,
-  data: UpdateStoreInput,
-): Promise<Store> {
+export async function updateStore(id: number, data: UpdateStoreInput): Promise<Store> {
   // タイムゾーンとともに日時が提供された場合、UTCに変換
   const timezone = data.timezone || getDefaultTimezone();
   const publishedAt =

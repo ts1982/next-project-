@@ -1,8 +1,4 @@
-import {
-  PrismaClient,
-  PermissionScope,
-  NotificationType,
-} from "@prisma/client";
+import { PrismaClient, PermissionScope, NotificationType } from "@prisma/client";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcryptjs";
 

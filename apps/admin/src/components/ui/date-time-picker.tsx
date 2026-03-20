@@ -12,11 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // NOTE: 重要な制限事項
 // - Date object is created in browser's local timezone
@@ -59,9 +55,7 @@ function TimeSpinner({
 
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[10px] text-muted-foreground font-medium">
-        {label}
-      </span>
+      <span className="text-[10px] text-muted-foreground font-medium">{label}</span>
       <button
         type="button"
         onClick={increment}
@@ -95,15 +89,9 @@ export function DateTimePicker({
   disabled,
   timezone = "Asia/Tokyo",
 }: DateTimePickerProps) {
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
-    value
-  );
-  const [hours, setHours] = React.useState<number>(
-    value ? value.getHours() : 0
-  );
-  const [minutes, setMinutes] = React.useState<number>(
-    value ? value.getMinutes() : 0
-  );
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(value);
+  const [hours, setHours] = React.useState<number>(value ? value.getHours() : 0);
+  const [minutes, setMinutes] = React.useState<number>(value ? value.getMinutes() : 0);
   const [timezoneAbbr, setTimezoneAbbr] = React.useState<string>("");
 
   // タイムゾーン略称をクライアントサイドで取得（SSR/CSR の差分を避ける）
@@ -122,11 +110,7 @@ export function DateTimePicker({
   }, [timezone]);
 
   // 日付と時刻を結合してDateオブジェクトを作成
-  const applyDateTime = (
-    date: Date | undefined,
-    h: number,
-    m: number
-  ) => {
+  const applyDateTime = (date: Date | undefined, h: number, m: number) => {
     if (!date) {
       setSelectedDate(undefined);
       onChange?.(undefined);
@@ -187,15 +171,13 @@ export function DateTimePicker({
             variant="outline"
             className={cn(
               "w-full justify-start text-left font-normal",
-              !selectedDate && "text-muted-foreground"
+              !selectedDate && "text-muted-foreground",
             )}
             disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
             {selectedDate ? (
-              <span className="flex-1">
-                {format(selectedDate, "yyyy/MM/dd HH:mm")}
-              </span>
+              <span className="flex-1">{format(selectedDate, "yyyy/MM/dd HH:mm")}</span>
             ) : (
               <span className="flex-1">{placeholder}</span>
             )}
@@ -240,9 +222,7 @@ export function DateTimePicker({
                   disabled={disabled}
                   label="時"
                 />
-                <span className="text-lg font-medium text-muted-foreground mt-5">
-                  :
-                </span>
+                <span className="text-lg font-medium text-muted-foreground mt-5">:</span>
                 <TimeSpinner
                   value={minutes}
                   onChange={handleMinutesChange}
@@ -252,9 +232,7 @@ export function DateTimePicker({
                   label="分"
                 />
               </div>
-              <span className="text-xs text-muted-foreground ml-auto">
-                {timezoneAbbr}
-              </span>
+              <span className="text-xs text-muted-foreground ml-auto">{timezoneAbbr}</span>
             </div>
           </div>
         </PopoverContent>

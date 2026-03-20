@@ -1,31 +1,31 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { formatDateTime } from "@/lib/utils/date-format"
-import { DataTable, type Column } from "@/components/common/data-table"
-import { UserDetailModal } from "./user-detail-modal"
-import { RoleBadge } from "./role-badge"
-import type { User } from "../types/user.types"
+import { useState } from "react";
+import { formatDateTime } from "@/lib/utils/date-format";
+import { DataTable, type Column } from "@/components/common/data-table";
+import { UserDetailModal } from "./user-detail-modal";
+import { RoleBadge } from "./role-badge";
+import type { User } from "../types/user.types";
 
 interface UserTableProps {
-  users: User[]
+  users: User[];
   pagination: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
-  timezone: string
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  timezone: string;
 }
 
 export const UserTable = ({ users, timezone }: UserTableProps) => {
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleRowClick = (user: User) => {
-    setSelectedUser(user)
-    setIsModalOpen(true)
-  }
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
 
   const columns: Column<User>[] = [
     {
@@ -60,7 +60,7 @@ export const UserTable = ({ users, timezone }: UserTableProps) => {
       header: "更新日",
       render: (user) => formatDateTime(user.updatedAt, timezone),
     },
-  ]
+  ];
 
   return (
     <>
@@ -77,11 +77,11 @@ export const UserTable = ({ users, timezone }: UserTableProps) => {
         user={selectedUser}
         isOpen={isModalOpen}
         onClose={() => {
-          setIsModalOpen(false)
-          setSelectedUser(null)
+          setIsModalOpen(false);
+          setSelectedUser(null);
         }}
         timezone={timezone}
       />
     </>
-  )
-}
+  );
+};

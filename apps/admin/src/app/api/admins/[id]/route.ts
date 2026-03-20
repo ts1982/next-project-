@@ -18,9 +18,7 @@ export const PATCH = withApiHandler(
     const result = await updateAdmin(id, body);
 
     logger.info("Admin updated successfully", { id });
-    return NextResponse.json(
-      successResponse(result, "管理者を更新しました"),
-    );
+    return NextResponse.json(successResponse(result, "管理者を更新しました"));
   },
   { rateLimit: RATE_LIMITS.POST, operationName: "管理者の更新" },
 );
@@ -35,9 +33,7 @@ export const DELETE = withApiHandler(
     await prisma.admin.delete({ where: { id } });
 
     logger.info("Admin deleted successfully", { id });
-    return NextResponse.json(
-      successResponse(null, "管理者を削除しました"),
-    );
+    return NextResponse.json(successResponse(null, "管理者を削除しました"));
   },
   { rateLimit: RATE_LIMITS.STRICT, operationName: "管理者の削除" },
 );

@@ -15,9 +15,7 @@ function parseCookies(req: IncomingMessage): Record<string, string> {
   return cookies;
 }
 
-export async function authenticateWs(
-  req: IncomingMessage,
-): Promise<string | null> {
+export async function authenticateWs(req: IncomingMessage): Promise<string | null> {
   const cookies = parseCookies(req);
   const token = cookies[COOKIE_NAME];
   if (!token) return null;

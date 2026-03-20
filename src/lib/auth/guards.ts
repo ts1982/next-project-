@@ -109,13 +109,7 @@ export async function requirePermission(
 
   // resourceOwnerId が渡された場合は自己リソースチェック含む
   if (resourceOwnerId) {
-    const allowed = canAccessResource(
-      user.permissions,
-      resource,
-      action,
-      resourceOwnerId,
-      user.id,
-    );
+    const allowed = canAccessResource(user.permissions, resource, action, resourceOwnerId, user.id);
     if (!allowed) {
       throw new ForbiddenError();
     }

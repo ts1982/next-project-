@@ -14,17 +14,14 @@ export interface ApiErrorResponse {
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 // ヘルパー関数
-export function successResponse<T>(
-  data: T,
-  message?: string
-): ApiSuccessResponse<T> {
+export function successResponse<T>(data: T, message?: string): ApiSuccessResponse<T> {
   return { success: true, data, message };
 }
 
 export function errorResponse(
   error: string,
   fields?: Record<string, string>,
-  code?: string
+  code?: string,
 ): ApiErrorResponse {
   return { success: false, error, fields, code };
 }

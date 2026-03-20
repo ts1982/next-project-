@@ -16,9 +16,7 @@ export const POST = withApiHandler(
     logger.info("Notification delivery completed", {
       delivered: result.delivered,
     });
-    return NextResponse.json(
-      successResponse(result, `${result.delivered}件の通知を配信しました`),
-    );
+    return NextResponse.json(successResponse(result, `${result.delivered}件の通知を配信しました`));
   },
   { rateLimit: RATE_LIMITS.POST, operationName: "通知の配信" },
 );

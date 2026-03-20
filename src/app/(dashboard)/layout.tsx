@@ -4,11 +4,7 @@ import { ReactNode, useState } from "react";
 import { Header } from "@/components/layouts/header";
 import { Sidebar } from "@/components/layouts/sidebar";
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (

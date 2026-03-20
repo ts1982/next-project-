@@ -10,13 +10,10 @@ export const PATCH = withApiHandler(async (request, { params }) => {
 
   try {
     await markNotificationAsRead(user.id, notificationId);
-    return NextResponse.json(
-      successResponse(null, "既読にしました"),
-    );
+    return NextResponse.json(successResponse(null, "既読にしました"));
   } catch {
-    return NextResponse.json(
-      errorResponse("通知が見つかりません", undefined, "NOT_FOUND"),
-      { status: 404 },
-    );
+    return NextResponse.json(errorResponse("通知が見つかりません", undefined, "NOT_FOUND"), {
+      status: 404,
+    });
   }
 });

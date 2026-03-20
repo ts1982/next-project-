@@ -6,10 +6,7 @@ export const createAdminNotificationSchema = z.object({
     .min(1, "タイトルを入力してください")
     .max(200, "タイトルは200文字以内で入力してください")
     .trim(),
-  body: z
-    .string({ message: "本文は必須です" })
-    .min(1, "本文を入力してください")
-    .trim(),
+  body: z.string({ message: "本文は必須です" }).min(1, "本文を入力してください").trim(),
   type: z.enum(["SYSTEM", "INFO", "WARNING", "PROMOTION"], {
     message: "通知種別を選択してください",
   }),
@@ -21,9 +18,7 @@ export const createAdminNotificationSchema = z.object({
   timezone: z.string().optional(),
 });
 
-export type CreateAdminNotificationInput = z.infer<
-  typeof createAdminNotificationSchema
->;
+export type CreateAdminNotificationInput = z.infer<typeof createAdminNotificationSchema>;
 
 export const updateAdminNotificationSchema = z.object({
   title: z
@@ -40,6 +35,4 @@ export const updateAdminNotificationSchema = z.object({
   timezone: z.string().optional(),
 });
 
-export type UpdateAdminNotificationInput = z.infer<
-  typeof updateAdminNotificationSchema
->;
+export type UpdateAdminNotificationInput = z.infer<typeof updateAdminNotificationSchema>;

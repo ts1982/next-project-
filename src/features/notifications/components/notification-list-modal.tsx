@@ -79,9 +79,7 @@ export function NotificationListModal({
         const params = new URLSearchParams({ limit: String(LIMIT) });
         if (cursor) params.set("cursor", cursor);
 
-        const response = await fetch(
-          `/api/users/${userId}/notifications?${params.toString()}`,
-        );
+        const response = await fetch(`/api/users/${userId}/notifications?${params.toString()}`);
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -91,9 +89,7 @@ export function NotificationListModal({
             throw new Error("この通知を閲覧する権限がありません。");
           }
           if (response.status === 429) {
-            throw new Error(
-              "リクエストが多すぎます。しばらく待ってから再試行してください。",
-            );
+            throw new Error("リクエストが多すぎます。しばらく待ってから再試行してください。");
           }
           throw new Error("通知の取得に失敗しました");
         }
@@ -109,8 +105,7 @@ export function NotificationListModal({
         setNextCursor(data.pagination.nextCursor);
         setHasMore(data.pagination.hasMore);
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "通知の取得に失敗しました";
+        const message = err instanceof Error ? err.message : "通知の取得に失敗しました";
         setError(message);
       } finally {
         setIsLoading(false);
@@ -134,7 +129,7 @@ export function NotificationListModal({
       setError(null);
       setIsLoading(false);
       setIsLoadingMore(false);
-      
+
       // 最新の fetchNotifications を呼び出す
       if (fetchNotificationsRef.current) {
         fetchNotificationsRef.current();
@@ -146,7 +141,7 @@ export function NotificationListModal({
   useEffect(() => {
     // モーダルが閉じている場合は observer を設定しない
     if (!isOpen) return;
-    
+
     const sentinel = sentinelRef.current;
     if (!sentinel || !hasMore || isLoadingMore) return;
 
@@ -184,9 +179,7 @@ export function NotificationListModal({
             <Bell className="h-5 w-5" />
             通知一覧
           </DialogTitle>
-          <DialogDescription>
-            ユーザーに紐づく通知の一覧です
-          </DialogDescription>
+          <DialogDescription>ユーザーに紐づく通知の一覧です</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
@@ -194,9 +187,7 @@ export function NotificationListModal({
           {isLoading && (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">
-                読み込み中...
-              </span>
+              <span className="ml-2 text-sm text-muted-foreground">読み込み中...</span>
             </div>
           )}
 
@@ -204,11 +195,7 @@ export function NotificationListModal({
           {error && !isLoading && (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <p className="text-sm text-destructive">{error}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchNotificationsRef.current?.()}
-              >
+              <Button variant="outline" size="sm" onClick={() => fetchNotificationsRef.current?.()}>
                 再試行
               </Button>
             </div>
@@ -218,9 +205,7 @@ export function NotificationListModal({
           {!isLoading && !error && notifications.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12">
               <Bell className="h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-3 text-sm text-muted-foreground">
-                通知はありません
-              </p>
+              <p className="mt-3 text-sm text-muted-foreground">通知はありません</p>
             </div>
           )}
 
@@ -238,16 +223,12 @@ export function NotificationListModal({
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="mt-0.5 shrink-0">
-                        {TYPE_ICON[notification.type]}
-                      </div>
+                      <div className="mt-0.5 shrink-0">{TYPE_ICON[notification.type]}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span
                             className={`text-sm font-medium ${
-                              notification.isRead
-                                ? "text-muted-foreground"
-                                : "text-foreground"
+                              notification.isRead ? "text-muted-foreground" : "text-foreground"
                             }`}
                           >
                             {notification.title}
@@ -282,9 +263,7 @@ export function NotificationListModal({
                   {isLoadingMore && (
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        読み込み中...
-                      </span>
+                      <span className="text-sm text-muted-foreground">読み込み中...</span>
                     </div>
                   )}
                 </div>

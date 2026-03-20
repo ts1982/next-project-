@@ -10,10 +10,7 @@ import { withApiHandler } from "@/lib/middleware/api-handler";
 
 export const GET = withApiHandler(
   async (request, { clientIp }) => {
-    const { user: currentUser, scope } = await requirePermission(
-      "users",
-      "read",
-    );
+    const { user: currentUser, scope } = await requirePermission("users", "read");
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
@@ -32,8 +29,7 @@ export const GET = withApiHandler(
         }
       : {};
 
-    const where =
-      scope === "own" ? { ...searchWhere, id: currentUser.id } : searchWhere;
+    const where = scope === "own" ? { ...searchWhere, id: currentUser.id } : searchWhere;
 
     const [total, users] = await Promise.all([
       prisma.user.count({ where }),
@@ -83,10 +79,9 @@ export const POST = withApiHandler(
     const result = await createUser(validatedData);
 
     logger.info("User created successfully", { user: result });
-    return NextResponse.json(
-      successResponse(result, "ユーザーが正常に作成されました"),
-      { status: 201 },
-    );
+    return NextResponse.json(successResponse(result, "ユーザーが正常に作成されました"), {
+      status: 201,
+    });
   },
   { rateLimit: RATE_LIMITS.POST, operationName: "ユーザーの作成" },
 );

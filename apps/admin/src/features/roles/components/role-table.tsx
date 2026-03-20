@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { DataTable, type Column } from "@/components/common/data-table"
-import { Badge } from "@/components/ui/badge"
-import { RoleDetailModal } from "./role-detail-modal"
-import type { RoleWithPermissions, PermissionDefinition } from "../types/role.types"
-import { RESOURCE_LABELS, ACTION_LABELS } from "@/lib/auth/permissions"
+import { useState } from "react";
+import { DataTable, type Column } from "@/components/common/data-table";
+import { Badge } from "@/components/ui/badge";
+import { RoleDetailModal } from "./role-detail-modal";
+import type { RoleWithPermissions, PermissionDefinition } from "../types/role.types";
+import { RESOURCE_LABELS, ACTION_LABELS } from "@/lib/auth/permissions";
 
 interface RoleTableProps {
-  roles: RoleWithPermissions[]
-  permissions: PermissionDefinition[]
+  roles: RoleWithPermissions[];
+  permissions: PermissionDefinition[];
 }
 
 export function RoleTable({ roles, permissions }: RoleTableProps) {
-  const [selectedRole, setSelectedRole] = useState<RoleWithPermissions | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<RoleWithPermissions | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleRowClick = (role: RoleWithPermissions) => {
-    setSelectedRole(role)
-    setIsModalOpen(true)
-  }
+    setSelectedRole(role);
+    setIsModalOpen(true);
+  };
 
   const columns: Column<RoleWithPermissions>[] = [
     {
@@ -30,16 +30,12 @@ export function RoleTable({ roles, permissions }: RoleTableProps) {
     {
       key: "description",
       header: "説明",
-      render: (role) => (
-        <span className="text-muted-foreground">{role.description || "—"}</span>
-      ),
+      render: (role) => <span className="text-muted-foreground">{role.description || "—"}</span>,
     },
     {
       key: "permissions",
       header: "パーミッション数",
-      render: (role) => (
-        <Badge variant="secondary">{role.permissions.length}</Badge>
-      ),
+      render: (role) => <Badge variant="secondary">{role.permissions.length}</Badge>,
     },
     {
       key: "summary",
@@ -52,17 +48,17 @@ export function RoleTable({ roles, permissions }: RoleTableProps) {
               `${RESOURCE_LABELS[p.resource as keyof typeof RESOURCE_LABELS] || p.resource}:${
                 ACTION_LABELS[p.action as keyof typeof ACTION_LABELS] || p.action
               }`,
-          )
-        const remaining = role.permissions.length - 3
+          );
+        const remaining = role.permissions.length - 3;
         return (
           <span className="text-xs text-muted-foreground">
             {summary.join(", ")}
             {remaining > 0 && ` +${remaining}`}
           </span>
-        )
+        );
       },
     },
-  ]
+  ];
 
   return (
     <>
@@ -80,10 +76,10 @@ export function RoleTable({ roles, permissions }: RoleTableProps) {
         permissions={permissions}
         isOpen={isModalOpen}
         onClose={() => {
-          setIsModalOpen(false)
-          setSelectedRole(null)
+          setIsModalOpen(false);
+          setSelectedRole(null);
         }}
       />
     </>
-  )
+  );
 }

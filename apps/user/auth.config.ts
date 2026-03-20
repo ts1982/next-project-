@@ -16,16 +16,12 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user?.id;
       const pathname = nextUrl.pathname;
 
-      const isProtectedRoute = PROTECTED_PATHS.some((path) =>
-        pathname.startsWith(path),
-      );
+      const isProtectedRoute = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
       const isAuthPage = pathname === "/login" || pathname === "/register";
 
       if (isProtectedRoute && !isLoggedIn) {
         const callbackUrl = encodeURIComponent(nextUrl.href);
-        return Response.redirect(
-          new URL(`/login?callbackUrl=${callbackUrl}`, nextUrl),
-        );
+        return Response.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, nextUrl));
       }
 
       if (isAuthPage && isLoggedIn) {

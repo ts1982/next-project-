@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
-import { BarChart as BarChartIcon } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { BarChart as BarChartIcon } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AnalyticsPage = () => {
   return (
@@ -18,9 +18,7 @@ const AnalyticsPage = () => {
         <Card>
           <CardHeader>
             <CardTitle>ユーザー統計</CardTitle>
-            <CardDescription>
-              ユーザーの登録推移と活動状況
-            </CardDescription>
+            <CardDescription>ユーザーの登録推移と活動状況</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-75 flex items-center justify-center border-2 border-dashed rounded-lg">
@@ -54,7 +52,7 @@ const AnalyticsPage = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AnalyticsPage
+export default AnalyticsPage;

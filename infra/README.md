@@ -21,15 +21,16 @@ Route53 (admin.studify.click / app.studify.click)
 
 ## スタック構成
 
-| スタック | ファイル | 常設/一時 | 内容 |
-|----------|----------|-----------|------|
-| `next-project-base` | `base-stack.yaml` | 常設 | VPC/Subnet/SG/ECR/ECS Cluster/RDS/IAM/ACM/Task Definition |
-| `next-project-edge` | `edge-stack.yaml` | **起動時のみ** | ALB/TG/Listener/ECS Service/Route53 Alias/cron EventBridge |
-| `next-project-ctrl` | `control-plane-stack.yaml` | 常設 | Lambda(start/stop)/Scheduler IAM Role |
+| スタック            | ファイル                   | 常設/一時      | 内容                                                       |
+| ------------------- | -------------------------- | -------------- | ---------------------------------------------------------- |
+| `next-project-base` | `base-stack.yaml`          | 常設           | VPC/Subnet/SG/ECR/ECS Cluster/RDS/IAM/ACM/Task Definition  |
+| `next-project-edge` | `edge-stack.yaml`          | **起動時のみ** | ALB/TG/Listener/ECS Service/Route53 Alias/cron EventBridge |
+| `next-project-ctrl` | `control-plane-stack.yaml` | 常設           | Lambda(start/stop)/Scheduler IAM Role                      |
 
 ## 初回セットアップ手順
 
 ### 前提条件
+
 - AWS CLI 設定済み (`aws configure`)
 - Docker インストール済み
 - Route53 Hosted Zone 作成済み（既存ドメイン）
@@ -255,6 +256,7 @@ wscat -c wss://app.studify.click/ws
 ## 起動・停止方法
 
 > **仕組みの概要**
+>
 > - **start Lambda**: RDS を起動（またはスナップショットから復元）→ SSM `DATABASE_URL` を新エンドポイントで更新 → Edge Stack（ALB + ECS Service）を作成 → 5 時間後に自動停止をスケジュール
 > - **stop Lambda**: auto-stop スケジュールを削除 → Edge Stack を削除（ALB を消してコスト削減）→ RDS を**スナップショット保存後に完全削除**（7 日後自動起動を回避）
 > - Edge Stack 作成に約 5〜10 分、RDS 起動/復元に約 5〜10 分かかる（合計 10〜20 分）
@@ -307,6 +309,7 @@ aws cloudformation describe-stacks \
 ```
 
 以下のステータス遷移が正常フローです:
+
 1. `CREATE_IN_PROGRESS` → 作成中
 2. `CREATE_COMPLETE` → 完了（ECS サービス + ALB が利用可能）
 
@@ -351,6 +354,7 @@ aws cloudformation describe-stacks \
 ```
 
 stop Lambda によって以下が順番に実行されます:
+
 1. auto-stop EventBridge スケジュールを削除
 2. Edge Stack（ALB + ECS Service + Route53 Alias）を削除
 3. RDS をスナップショット保存後に完全削除（7 日後自動起動を回避）
@@ -418,9 +422,9 @@ aws ecs describe-task-definition \
 
 GitHub リポジトリの Secrets に以下を登録:
 
-| Secret | 内容 |
-|--------|------|
-| `AWS_ACCESS_KEY_ID` | デプロイ用 IAM ユーザーのアクセスキー |
+| Secret                  | 内容                                      |
+| ----------------------- | ----------------------------------------- |
+| `AWS_ACCESS_KEY_ID`     | デプロイ用 IAM ユーザーのアクセスキー     |
 | `AWS_SECRET_ACCESS_KEY` | デプロイ用 IAM ユーザーのシークレットキー |
 
 → main ブランチへの push で自動ビルド & ECR プッシュ & ECS ローリングデプロイが実行されます。
@@ -429,19 +433,19 @@ GitHub リポジトリの Secrets に以下を登録:
 
 ## コスト目安（東京リージョン, 週末 40h/月）
 
-| リソース | 稼働 | 月額 |
-|----------|------|------|
-| Route53 Hosted Zone | 常時 | $0.50 |
-| ACM | 常時 | $0.00 |
-| ALB (稼働時のみ) | 40h | ~$0.97 |
-| Fargate admin 0.25vCPU/0.5GB | 40h | ~$0.62 |
-| Fargate user 0.25vCPU/0.5GB | 40h | ~$0.62 |
-| Fargate cron RunTask | ~8h | ~$0.12 |
-| RDS db.t4g.micro (稼働時のみ) | 40h | ~$0.64 |
-| RDS ストレージ 20GB | 常時 | ~$2.43 |
-| ECR 2GB | 常時 | ~$0.20 |
-| CloudWatch Logs | 稼働時 | ~$0.23 |
-| Lambda | 微量 | $0.00 |
-| **合計** | | **~$6.33/月** |
+| リソース                      | 稼働   | 月額          |
+| ----------------------------- | ------ | ------------- |
+| Route53 Hosted Zone           | 常時   | $0.50         |
+| ACM                           | 常時   | $0.00         |
+| ALB (稼働時のみ)              | 40h    | ~$0.97        |
+| Fargate admin 0.25vCPU/0.5GB  | 40h    | ~$0.62        |
+| Fargate user 0.25vCPU/0.5GB   | 40h    | ~$0.62        |
+| Fargate cron RunTask          | ~8h    | ~$0.12        |
+| RDS db.t4g.micro (稼働時のみ) | 40h    | ~$0.64        |
+| RDS ストレージ 20GB           | 常時   | ~$2.43        |
+| ECR 2GB                       | 常時   | ~$0.20        |
+| CloudWatch Logs               | 稼働時 | ~$0.23        |
+| Lambda                        | 微量   | $0.00         |
+| **合計**                      |        | **~$6.33/月** |
 
 > ALB が停止時削除されるため、常時稼働 ($23/月) と比較して大幅に削減。

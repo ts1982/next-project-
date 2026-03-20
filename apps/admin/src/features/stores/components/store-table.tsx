@@ -1,25 +1,25 @@
-"use client"
+"use client";
 
-import { Store } from "../types/store.types"
-import { useState } from "react"
-import { formatDate } from "@/lib/utils/date-format"
-import { DataTable, type Column } from "@/components/common/data-table"
-import { StoreDetailModal } from "./store-detail-modal"
-import { PublicationStatusBadge } from "./publication-status-badge"
+import { Store } from "../types/store.types";
+import { useState } from "react";
+import { formatDate } from "@/lib/utils/date-format";
+import { DataTable, type Column } from "@/components/common/data-table";
+import { StoreDetailModal } from "./store-detail-modal";
+import { PublicationStatusBadge } from "./publication-status-badge";
 
 interface StoreTableProps {
-  stores: Store[]
-  timezone: string
+  stores: Store[];
+  timezone: string;
 }
 
 export function StoreTable({ stores, timezone }: StoreTableProps) {
-  const [selectedStore, setSelectedStore] = useState<Store | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleRowClick = (store: Store) => {
-    setSelectedStore(store)
-    setIsModalOpen(true)
-  }
+    setSelectedStore(store);
+    setIsModalOpen(true);
+  };
 
   const columns: Column<Store>[] = [
     {
@@ -53,7 +53,7 @@ export function StoreTable({ stores, timezone }: StoreTableProps) {
       header: "登録日",
       render: (store) => formatDate(store.createdAt, timezone),
     },
-  ]
+  ];
 
   return (
     <>
@@ -70,11 +70,11 @@ export function StoreTable({ stores, timezone }: StoreTableProps) {
         store={selectedStore}
         isOpen={isModalOpen}
         onClose={() => {
-          setIsModalOpen(false)
-          setSelectedStore(null)
+          setIsModalOpen(false);
+          setSelectedStore(null);
         }}
         timezone={timezone}
       />
     </>
-  )
+  );
 }

@@ -1,8 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import type {
-  NotificationListResponse,
-  UnreadCountResponse,
-} from "../types/notification.types";
+import type { NotificationListResponse, UnreadCountResponse } from "../types/notification.types";
 
 const NOTIFICATION_SELECT = {
   id: true,
@@ -27,9 +24,7 @@ export async function getNotificationsByUserId(
     where: { userId },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit + 1,
-    ...(cursor
-      ? { cursor: { id: cursor }, skip: 1 }
-      : {}),
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: NOTIFICATION_SELECT,
   });
 
@@ -72,9 +67,7 @@ export async function markAllNotificationsAsRead(
   return { updatedCount: result.count };
 }
 
-export async function getUnreadCount(
-  userId: string,
-): Promise<UnreadCountResponse> {
+export async function getUnreadCount(userId: string): Promise<UnreadCountResponse> {
   const unreadCount = await prisma.notification.count({
     where: { userId, isRead: false },
   });

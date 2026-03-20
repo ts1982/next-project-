@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { format } from "date-fns"
-import { Store as StoreIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { FormField } from "@/components/common/form-field"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { format } from "date-fns";
+import { Store as StoreIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/common/form-field";
 import {
   Dialog,
   DialogContent,
@@ -13,44 +13,44 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { DateTimePicker } from "@/components/ui/date-time-picker"
-import { createStoreSchema, type CreateStoreSchema } from "../schemas/store.schema"
+} from "@/components/ui/dialog";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { createStoreSchema, type CreateStoreSchema } from "../schemas/store.schema";
 
 type FormErrors = {
-  name?: string
-  description?: string
-  address?: string
-  phone?: string
-  email?: string
-  publishedAt?: string
-  unpublishedAt?: string
-  general?: string
-}
+  name?: string;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  publishedAt?: string;
+  unpublishedAt?: string;
+  general?: string;
+};
 
 interface StoreCreateModalProps {
-  isOpen: boolean
-  onClose: () => void
-  timezone: string
+  isOpen: boolean;
+  onClose: () => void;
+  timezone: string;
 }
 
 export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModalProps) {
-  const router = useRouter()
+  const router = useRouter();
   const [formData, setFormData] = useState<CreateStoreSchema>({
     name: "",
     description: "",
     address: "",
     phone: "",
     email: "",
-  })
-  const [publishedAt, setPublishedAt] = useState<Date | undefined>()
-  const [unpublishedAt, setUnpublishedAt] = useState<Date | undefined>()
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  });
+  const [publishedAt, setPublishedAt] = useState<Date | undefined>();
+  const [unpublishedAt, setUnpublishedAt] = useState<Date | undefined>();
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrors({})
+    e.preventDefault();
+    setErrors({});
 
     // 公開日時をフォームデータに追加
     // ✅ ローカル日時文字列として送信（UTC変換はbackendで実施）
@@ -59,70 +59,70 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
       publishedAt: publishedAt ? format(publishedAt, "yyyy-MM-dd'T'HH:mm:ss") : null,
       unpublishedAt: unpublishedAt ? format(unpublishedAt, "yyyy-MM-dd'T'HH:mm:ss") : null,
       timezone,
-    }
+    };
 
     // バリデーション
-    const result = createStoreSchema.safeParse(submitData)
+    const result = createStoreSchema.safeParse(submitData);
     if (!result.success) {
-      const fieldErrors: FormErrors = {}
+      const fieldErrors: FormErrors = {};
       result.error.issues.forEach((err) => {
-        const field = err.path[0]?.toString() as keyof FormErrors
+        const field = err.path[0]?.toString() as keyof FormErrors;
         if (field) {
-          fieldErrors[field] = err.message
+          fieldErrors[field] = err.message;
         }
-      })
-      setErrors(fieldErrors)
-      return
+      });
+      setErrors(fieldErrors);
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const response = await fetch("/api/stores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(result.data),
-      })
+      });
 
-      let data: { error?: string } = {}
+      let data: { error?: string } = {};
       try {
-        data = await response.json()
+        data = await response.json();
       } catch {
         // JSON parse エラーの場合
         if (!response.ok) {
-          setErrors({ general: "サーバーエラーが発生しました" })
-          return
+          setErrors({ general: "サーバーエラーが発生しました" });
+          return;
         }
       }
 
       if (!response.ok) {
-        setErrors({ general: data.error || "店舗の作成に失敗しました" })
-        return
+        setErrors({ general: data.error || "店舗の作成に失敗しました" });
+        return;
       }
 
-      router.refresh()
-      onClose()
+      router.refresh();
+      onClose();
       setFormData({
         name: "",
         description: "",
         address: "",
         phone: "",
         email: "",
-      })
-      setPublishedAt(undefined)
-      setUnpublishedAt(undefined)
+      });
+      setPublishedAt(undefined);
+      setUnpublishedAt(undefined);
     } catch (error) {
-      console.error(error)
-      setErrors({ general: "店舗の作成に失敗しました" })
+      console.error(error);
+      setErrors({ general: "店舗の作成に失敗しました" });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) onClose()
+        if (!open) onClose();
       }}
     >
       <DialogContent className="sm:max-w-125">
@@ -209,10 +209,8 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
             {/* 公開設定セクション */}
             <div className="pt-4 border-t">
               <h3 className="text-sm font-medium mb-3">公開設定</h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                タイムゾーン: {timezone}
-              </p>
-              
+              <p className="text-xs text-muted-foreground mb-3">タイムゾーン: {timezone}</p>
+
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">公開開始日時</label>
@@ -223,7 +221,9 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
                     timezone={timezone}
                   />
                   {errors.publishedAt && (
-                    <p className="text-sm text-red-500 mt-1" role="alert">{errors.publishedAt}</p>
+                    <p className="text-sm text-red-500 mt-1" role="alert">
+                      {errors.publishedAt}
+                    </p>
                   )}
                 </div>
 
@@ -236,7 +236,9 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
                     timezone={timezone}
                   />
                   {errors.unpublishedAt && (
-                    <p className="text-sm text-red-500 mt-1" role="alert">{errors.unpublishedAt}</p>
+                    <p className="text-sm text-red-500 mt-1" role="alert">
+                      {errors.unpublishedAt}
+                    </p>
                   )}
                 </div>
               </div>
@@ -254,5 +256,5 @@ export function StoreCreateModal({ isOpen, onClose, timezone }: StoreCreateModal
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

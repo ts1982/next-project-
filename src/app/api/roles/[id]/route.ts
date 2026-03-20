@@ -3,11 +3,7 @@ import { successResponse, errorResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
 import { RATE_LIMITS } from "@/lib/middleware/rate-limit";
 import { requirePermission } from "@/lib/auth/guards";
-import {
-  getRoleById,
-  updateRole,
-  deleteRole,
-} from "@/features/roles/services/role.service";
+import { getRoleById, updateRole, deleteRole } from "@/features/roles/services/role.service";
 import { updateRoleSchema } from "@/features/roles/schemas/role.schema";
 import { withApiHandler } from "@/lib/middleware/api-handler";
 
@@ -20,10 +16,9 @@ export const GET = withApiHandler(
 
     const role = await getRoleById(id);
     if (!role) {
-      return NextResponse.json(
-        errorResponse("ロールが見つかりません", undefined, "NOT_FOUND"),
-        { status: 404 },
-      );
+      return NextResponse.json(errorResponse("ロールが見つかりません", undefined, "NOT_FOUND"), {
+        status: 404,
+      });
     }
 
     return NextResponse.json(successResponse(role));

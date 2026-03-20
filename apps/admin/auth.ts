@@ -39,12 +39,10 @@ async function getUserPermissions(userId: string) {
     },
   });
 
-  if (!admin?.role)
-    return { roleId: "", roleName: "", permissions: [] as string[] };
+  if (!admin?.role) return { roleId: "", roleName: "", permissions: [] as string[] };
 
   const permissions = admin.role.rolePermissions.map(
-    (rp) =>
-      `${rp.permission.resource}:${rp.permission.action}:${rp.scope.toLowerCase()}`,
+    (rp) => `${rp.permission.resource}:${rp.permission.action}:${rp.scope.toLowerCase()}`,
   );
 
   return {
@@ -110,9 +108,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // ロール + パーミッション文字列を取得
-        const { roleId, roleName, permissions } = await getUserPermissions(
-          admin.id,
-        );
+        const { roleId, roleName, permissions } = await getUserPermissions(admin.id);
 
         return {
           id: admin.id,

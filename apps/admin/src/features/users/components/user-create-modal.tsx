@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState, useId } from "react"
-import { useRouter } from "next/navigation"
-import { UserPlus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { FormField } from "@/components/common/form-field"
+import { useState, useId } from "react";
+import { useRouter } from "next/navigation";
+import { UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { FormField } from "@/components/common/form-field";
 import {
   Dialog,
   DialogContent,
@@ -12,48 +12,48 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { createUserSchema } from "../schemas/user.schema"
-import { RoleSelect } from "./role-select"
-import { ZodError } from "zod"
+} from "@/components/ui/dialog";
+import { createUserSchema } from "../schemas/user.schema";
+import { RoleSelect } from "./role-select";
+import { ZodError } from "zod";
 
 type FormErrors = {
-  name?: string
-  email?: string
-  password?: string
-  roleId?: string
-  general?: string
-}
+  name?: string;
+  email?: string;
+  password?: string;
+  roleId?: string;
+  general?: string;
+};
 
 interface UserCreateModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export function UserCreateModal({ isOpen, onClose }: UserCreateModalProps) {
-  const router = useRouter()
-  const nameId = useId()
-  const emailId = useId()
-  const passwordId = useId()
-  const formErrorId = useId()
+  const router = useRouter();
+  const nameId = useId();
+  const emailId = useId();
+  const passwordId = useId();
+  const formErrorId = useId();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     roleId: "",
-  })
-  const [errors, setErrors] = useState<FormErrors>({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrors({})
-    setIsSubmitting(true)
+    e.preventDefault();
+    setErrors({});
+    setIsSubmitting(true);
 
     try {
       // クライアントサイドバリデーション
-      createUserSchema.parse(formData)
+      createUserSchema.parse(formData);
 
       // API呼び出し
       const response = await fetch("/api/users", {
@@ -62,58 +62,58 @@ export function UserCreateModal({ isOpen, onClose }: UserCreateModalProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
-      })
+      });
 
-      let data: { error?: string; fields?: FormErrors } = {}
+      let data: { error?: string; fields?: FormErrors } = {};
       try {
-        data = await response.json()
+        data = await response.json();
       } catch {
         // JSON parse エラーの場合
         if (!response.ok) {
-          setErrors({ general: "サーバーエラーが発生しました" })
-          return
+          setErrors({ general: "サーバーエラーが発生しました" });
+          return;
         }
       }
 
       if (!response.ok) {
         // サーバーサイドエラー
         if (response.status === 400 && data.fields) {
-          setErrors(data.fields)
+          setErrors(data.fields);
         } else if (response.status === 409) {
-          setErrors({ email: data.error })
+          setErrors({ email: data.error });
         } else {
-          setErrors({ general: data.error || "エラーが発生しました" })
+          setErrors({ general: data.error || "エラーが発生しました" });
         }
-        return
+        return;
       }
 
       // 成功
-      router.refresh()
-      onClose()
-      setFormData({ name: "", email: "", password: "", roleId: "" })
+      router.refresh();
+      onClose();
+      setFormData({ name: "", email: "", password: "", roleId: "" });
     } catch (error) {
       if (error instanceof ZodError) {
-        const fieldErrors: FormErrors = {}
+        const fieldErrors: FormErrors = {};
         error.issues.forEach((err) => {
-          const field = err.path[0]?.toString() as keyof FormErrors
+          const field = err.path[0]?.toString() as keyof FormErrors;
           if (field) {
-            fieldErrors[field] = err.message
+            fieldErrors[field] = err.message;
           }
-        })
-        setErrors(fieldErrors)
+        });
+        setErrors(fieldErrors);
       } else {
-        setErrors({ general: "予期しないエラーが発生しました" })
+        setErrors({ general: "予期しないエラーが発生しました" });
       }
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        if (!open) onClose()
+        if (!open) onClose();
       }}
     >
       <DialogContent className="sm:max-w-125">
@@ -200,5 +200,5 @@ export function UserCreateModal({ isOpen, onClose }: UserCreateModalProps) {
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

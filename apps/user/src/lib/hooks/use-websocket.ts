@@ -33,9 +33,7 @@ export function useWebSocket({ onNotification }: UseWebSocketOptions = {}) {
       if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl =
-        process.env.NEXT_PUBLIC_WS_URL ||
-        `${protocol}//${window.location.host}/ws`;
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || `${protocol}//${window.location.host}/ws`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       setStatus("connecting");

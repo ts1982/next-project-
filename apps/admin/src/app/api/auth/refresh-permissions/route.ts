@@ -20,16 +20,13 @@ export async function POST() {
     const session = await auth();
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
-        { status: 401 },
-      );
+      return NextResponse.json(errorResponse("認証が必要です", undefined, "UNAUTHORIZED"), {
+        status: 401,
+      });
     }
 
     // DBから最新のパーミッションを取得
-    const { roleId, roleName, permissions } = await getUserPermissions(
-      session.user.id,
-    );
+    const { roleId, roleName, permissions } = await getUserPermissions(session.user.id);
 
     // クライアントはこのレスポンスを update() に渡す
     return NextResponse.json(
@@ -42,9 +39,6 @@ export async function POST() {
       }),
     );
   } catch {
-    return NextResponse.json(
-      errorResponse("パーミッションの更新に失敗しました"),
-      { status: 500 },
-    );
+    return NextResponse.json(errorResponse("パーミッションの更新に失敗しました"), { status: 500 });
   }
 }

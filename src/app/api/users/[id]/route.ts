@@ -18,9 +18,7 @@ export const PATCH = withApiHandler(
     const result = await updateUser(id, body);
 
     logger.info("User updated successfully", { id });
-    return NextResponse.json(
-      successResponse(result, "ユーザーを更新しました"),
-    );
+    return NextResponse.json(successResponse(result, "ユーザーを更新しました"));
   },
   { rateLimit: RATE_LIMITS.POST, operationName: "ユーザーの更新" },
 );
@@ -35,9 +33,7 @@ export const DELETE = withApiHandler(
     await prisma.user.delete({ where: { id } });
 
     logger.info("User deleted successfully", { id });
-    return NextResponse.json(
-      successResponse(null, "ユーザーを削除しました"),
-    );
+    return NextResponse.json(successResponse(null, "ユーザーを削除しました"));
   },
   { rateLimit: RATE_LIMITS.STRICT, operationName: "ユーザーの削除" },
 );

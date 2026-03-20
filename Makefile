@@ -1,4 +1,4 @@
-.PHONY: help dev build start lint db-* prisma-* seed clean install infra-start infra-stop infra-status dns-flush deploy-admin deploy-user deploy-lambda deploy-all deploy-infra-lambda
+.PHONY: help dev build start lint format format-check db-* prisma-* seed clean install infra-start infra-stop infra-status dns-flush deploy-admin deploy-user deploy-lambda deploy-all deploy-infra-lambda
 
 # デフォルトターゲット
 help:
@@ -9,6 +9,8 @@ help:
 	@echo "  make build            - Build for production"
 	@echo "  make start            - Start production server"
 	@echo "  make lint             - Run ESLint"
+	@echo "  make format           - Auto-format code (Prettier)"
+	@echo "  make format-check     - Check formatting (CI)"
 	@echo ""
 	@echo "Deploy (Docker images):"
 	@echo "  make deploy-admin    - Build & push admin image to ECR"
@@ -57,6 +59,12 @@ start:
 
 lint:
 	pnpm lint
+
+format:
+	pnpm exec prettier --write .
+
+format-check:
+	pnpm exec prettier --check .
 
 # Database (Docker)
 up:

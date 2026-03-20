@@ -27,17 +27,15 @@ sw.addEventListener("notificationclick", (event) => {
   const url = event.notification.data?.url || "/notifications";
 
   event.waitUntil(
-    sw.clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        // 既存のウィンドウがあればフォーカス
-        for (const client of clientList) {
-          if (client.url.includes(url) && "focus" in client) {
-            return client.focus();
-          }
+    sw.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // 既存のウィンドウがあればフォーカス
+      for (const client of clientList) {
+        if (client.url.includes(url) && "focus" in client) {
+          return client.focus();
         }
-        // なければ新しいウィンドウを開く
-        return sw.clients.openWindow(url);
-      }),
+      }
+      // なければ新しいウィンドウを開く
+      return sw.clients.openWindow(url);
+    }),
   );
 });

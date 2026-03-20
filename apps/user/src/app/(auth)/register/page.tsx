@@ -47,9 +47,7 @@ export default function RegisterPage() {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div className="text-center">
           <h1 className="text-3xl font-bold">新規登録</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            アカウントを作成してください
-          </p>
+          <p className="mt-2 text-sm text-gray-600">アカウントを作成してください</p>
         </div>
 
         {errors.form && (
@@ -60,9 +58,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              名前
-            </label>
+            <label className="block text-sm font-medium text-gray-700">名前</label>
             <input
               type="text"
               value={name}
@@ -70,15 +66,11 @@ export default function RegisterPage() {
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-            )}
+            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              メールアドレス
-            </label>
+            <label className="block text-sm font-medium text-gray-700">メールアドレス</label>
             <input
               type="email"
               value={email}
@@ -87,15 +79,11 @@ export default function RegisterPage() {
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="your@email.com"
             />
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-            )}
+            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              パスワード
-            </label>
+            <label className="block text-sm font-medium text-gray-700">パスワード</label>
             <input
               type="password"
               value={password}
@@ -103,12 +91,8 @@ export default function RegisterPage() {
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <p className="mt-1 text-xs text-gray-500">
-              8文字以上、英字と数字を含む
-            </p>
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-            )}
+            <p className="mt-1 text-xs text-gray-500">8文字以上、英字と数字を含む</p>
+            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
           </div>
 
           <button
@@ -122,10 +106,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-gray-600">
           既にアカウントをお持ちの方は{" "}
-          <Link
-            href="/login"
-            className="font-medium text-blue-600 hover:text-blue-500"
-          >
+          <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
             ログイン
           </Link>
         </p>

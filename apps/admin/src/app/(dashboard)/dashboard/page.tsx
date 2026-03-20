@@ -1,9 +1,9 @@
 export const dynamic = "force-dynamic";
 
-import { Suspense } from "react"
-import { Users, TrendingUp, UserPlus } from "lucide-react"
-import { prisma } from "@/lib/db/prisma"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Suspense } from "react";
+import { Users, TrendingUp, UserPlus } from "lucide-react";
+import { prisma } from "@/lib/db/prisma";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 async function getDashboardStats() {
   const [totalUsers, recentUsers] = await Promise.all([
@@ -18,24 +18,24 @@ async function getDashboardStats() {
         createdAt: true,
       },
     }),
-  ])
+  ]);
 
   // 今月の新規ユーザー数を計算
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const newUsersThisMonth = await prisma.admin.count({
     where: {
       createdAt: {
         gte: startOfMonth,
       },
     },
-  })
+  });
 
   return {
     totalUsers,
     newUsersThisMonth,
     recentUsers,
-  }
+  };
 }
 
 function StatsCardSkeleton() {
@@ -48,57 +48,57 @@ function StatsCardSkeleton() {
       <div className="h-8 w-20 bg-muted rounded mb-1" />
       <div className="h-3 w-32 bg-muted rounded" />
     </div>
-  )
+  );
 }
 
 async function DashboardStats() {
-  const stats = await getDashboardStats()
+  const stats = await getDashboardStats();
 
   return (
     <>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="relative overflow-hidden border-0 shadow-md shadow-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">総ユーザー数</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              総ユーザー数
+            </CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold tracking-tight">{stats.totalUsers}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              登録済みユーザーの総数
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">登録済みユーザーの総数</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden border-0 shadow-md shadow-chart-2/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">今月の新規登録</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              今月の新規登録
+            </CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-chart-2/10">
               <UserPlus className="h-5 w-5 text-chart-2" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold tracking-tight">{stats.newUsersThisMonth}</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              今月登録されたユーザー
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">今月登録されたユーザー</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden border-0 shadow-md shadow-chart-3/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">アクティブ率</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              アクティブ率
+            </CardTitle>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-chart-3/10">
               <TrendingUp className="h-5 w-5 text-chart-3" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold tracking-tight">-</div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              準備中
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">準備中</p>
           </CardContent>
         </Card>
       </div>
@@ -139,7 +139,7 @@ async function DashboardStats() {
         </CardContent>
       </Card>
     </>
-  )
+  );
 }
 
 const DashboardPage = () => {
@@ -162,7 +162,7 @@ const DashboardPage = () => {
         <DashboardStats />
       </Suspense>
     </div>
-  )
-}
+  );
+};
 
-export default DashboardPage
+export default DashboardPage;

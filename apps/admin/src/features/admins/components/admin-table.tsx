@@ -1,31 +1,31 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { formatDateTime } from "@/lib/utils/date-format"
-import { DataTable, type Column } from "@/components/common/data-table"
-import { AdminDetailModal } from "./admin-detail-modal"
-import { RoleBadge } from "./role-badge"
-import type { Admin } from "../types/admin.types"
+import { useState } from "react";
+import { formatDateTime } from "@/lib/utils/date-format";
+import { DataTable, type Column } from "@/components/common/data-table";
+import { AdminDetailModal } from "./admin-detail-modal";
+import { RoleBadge } from "./role-badge";
+import type { Admin } from "../types/admin.types";
 
 interface AdminTableProps {
-  admins: Admin[]
+  admins: Admin[];
   pagination: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
-  timezone: string
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+  timezone: string;
 }
 
 export const AdminTable = ({ admins, timezone }: AdminTableProps) => {
-  const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedAdmin, setSelectedAdmin] = useState<Admin | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleRowClick = (admin: Admin) => {
-    setSelectedAdmin(admin)
-    setIsModalOpen(true)
-  }
+    setSelectedAdmin(admin);
+    setIsModalOpen(true);
+  };
 
   const columns: Column<Admin>[] = [
     {
@@ -60,7 +60,7 @@ export const AdminTable = ({ admins, timezone }: AdminTableProps) => {
       header: "更新日",
       render: (admin) => formatDateTime(admin.updatedAt, timezone),
     },
-  ]
+  ];
 
   return (
     <>
@@ -77,11 +77,11 @@ export const AdminTable = ({ admins, timezone }: AdminTableProps) => {
         admin={selectedAdmin}
         isOpen={isModalOpen}
         onClose={() => {
-          setIsModalOpen(false)
-          setSelectedAdmin(null)
+          setIsModalOpen(false);
+          setSelectedAdmin(null);
         }}
         timezone={timezone}
       />
     </>
-  )
-}
+  );
+};

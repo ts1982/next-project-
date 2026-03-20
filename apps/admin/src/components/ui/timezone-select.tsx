@@ -12,15 +12,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  POPULAR_TIMEZONES,
-  formatTimezoneLabel,
-} from "@/lib/utils/timezone";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { POPULAR_TIMEZONES, formatTimezoneLabel } from "@/lib/utils/timezone";
 
 interface TimezoneSelectProps {
   value?: string;
@@ -29,12 +22,7 @@ interface TimezoneSelectProps {
   disabled?: boolean;
 }
 
-export function TimezoneSelect({
-  value,
-  onChange,
-  className,
-  disabled,
-}: TimezoneSelectProps) {
+export function TimezoneSelect({ value, onChange, className, disabled }: TimezoneSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
 
@@ -48,9 +36,7 @@ export function TimezoneSelect({
     }
 
     const lowerSearch = searchValue.toLowerCase();
-    return POPULAR_TIMEZONES.filter((tz) =>
-      tz.toLowerCase().includes(lowerSearch)
-    );
+    return POPULAR_TIMEZONES.filter((tz) => tz.toLowerCase().includes(lowerSearch));
   }, [searchValue]);
 
   const handleSelect = (currentValue: string) => {
@@ -90,14 +76,9 @@ export function TimezoneSelect({
                   onSelect={() => handleSelect(timezone)}
                 >
                   <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === timezone ? "opacity-100" : "opacity-0"
-                    )}
+                    className={cn("mr-2 h-4 w-4", value === timezone ? "opacity-100" : "opacity-0")}
                   />
-                  <span className="truncate">
-                    {formatTimezoneLabel(timezone)}
-                  </span>
+                  <span className="truncate">{formatTimezoneLabel(timezone)}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

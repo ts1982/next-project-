@@ -14,8 +14,7 @@ export function calculateIsPublic(
     return false;
   }
 
-  const publishedDate =
-    typeof publishedAt === "string" ? new Date(publishedAt) : publishedAt;
+  const publishedDate = typeof publishedAt === "string" ? new Date(publishedAt) : publishedAt;
   const nowTime = now.getTime();
 
   // 公開開始日時前の場合は未公開
@@ -55,8 +54,7 @@ export function getPublicationStatus(
     return "未設定";
   }
 
-  const publishedDate =
-    typeof publishedAt === "string" ? new Date(publishedAt) : publishedAt;
+  const publishedDate = typeof publishedAt === "string" ? new Date(publishedAt) : publishedAt;
   const nowTime = now.getTime();
 
   // 公開開始日時前の場合は予約公開
@@ -86,10 +84,7 @@ export function getPublicationStatus(
  * 公開日時をフォーマット
  * 例: "2026/02/15 10:00 (JST)"
  */
-export function formatPublicationDate(
-  dateTime: Date | string,
-  timezone?: string,
-): string {
+export function formatPublicationDate(dateTime: Date | string, timezone?: string): string {
   const tz = timezone || getDefaultTimezone();
   const date = typeof dateTime === "string" ? new Date(dateTime) : dateTime;
 
@@ -134,8 +129,7 @@ export function validatePublicationPeriod(
     return true;
   }
 
-  const publishedDate =
-    typeof publishedAt === "string" ? new Date(publishedAt) : publishedAt;
+  const publishedDate = typeof publishedAt === "string" ? new Date(publishedAt) : publishedAt;
   const unpublishedDate =
     typeof unpublishedAt === "string" ? new Date(unpublishedAt) : unpublishedAt;
 

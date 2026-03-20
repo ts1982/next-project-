@@ -9,10 +9,7 @@ export const GET = withApiHandler(async (request) => {
 
   const searchParams = request.nextUrl.searchParams;
   const cursor = searchParams.get("cursor") || undefined;
-  const limit = Math.min(
-    Math.max(parseInt(searchParams.get("limit") || "20"), 1),
-    100,
-  );
+  const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20"), 1), 100);
 
   const result = await getNotificationsByUserId(user.id, cursor, limit);
   return NextResponse.json(successResponse(result));

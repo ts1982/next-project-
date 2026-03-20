@@ -48,16 +48,17 @@ const SettingsPage = () => {
           timezone: timezone,
         },
       });
-      
+
       setMessage({ type: "success", text: "タイムゾーンを更新しました" });
-      
+
       // 少し待ってからリフレッシュ（セッション更新を確実にする）
       setTimeout(() => {
         router.refresh();
       }, 100);
     } catch (error) {
       console.error("Error updating timezone:", error);
-      const errorMessage = error instanceof Error ? error.message : "タイムゾーンの更新に失敗しました";
+      const errorMessage =
+        error instanceof Error ? error.message : "タイムゾーンの更新に失敗しました";
       setMessage({ type: "error", text: errorMessage });
     } finally {
       setIsLoading(false);
@@ -78,9 +79,7 @@ const SettingsPage = () => {
         <Card>
           <CardHeader>
             <CardTitle>プロフィール設定</CardTitle>
-            <CardDescription>
-              ユーザー情報を確認できます
-            </CardDescription>
+            <CardDescription>ユーザー情報を確認できます</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -111,11 +110,7 @@ const SettingsPage = () => {
               <label htmlFor="timezone" className="text-sm font-medium">
                 タイムゾーン
               </label>
-              <TimezoneSelect
-                value={timezone}
-                onChange={setTimezone}
-                disabled={isLoading}
-              />
+              <TimezoneSelect value={timezone} onChange={setTimezone} disabled={isLoading} />
               <p className="text-xs text-muted-foreground">
                 選択したタイムゾーンで日時が表示されます
               </p>
@@ -131,10 +126,7 @@ const SettingsPage = () => {
                 {message.text}
               </div>
             )}
-            <Button
-              onClick={handleTimezoneUpdate}
-              disabled={isLoading || !timezone}
-            >
+            <Button onClick={handleTimezoneUpdate} disabled={isLoading || !timezone}>
               {isLoading ? "保存中..." : "保存"}
             </Button>
           </CardContent>

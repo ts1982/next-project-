@@ -48,8 +48,7 @@ const globalForWs = globalThis as unknown as {
   connectionManager: ConnectionManager | undefined;
 };
 
-export const connectionManager =
-  globalForWs.connectionManager ?? new ConnectionManager();
+export const connectionManager = globalForWs.connectionManager ?? new ConnectionManager();
 
 if (process.env.NODE_ENV !== "production") {
   globalForWs.connectionManager = connectionManager;

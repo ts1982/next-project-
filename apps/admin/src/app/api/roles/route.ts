@@ -3,11 +3,7 @@ import { successResponse } from "@/lib/types/api.types";
 import { logger } from "@/lib/utils/logger";
 import { RATE_LIMITS } from "@/lib/middleware/rate-limit";
 import { requirePermission } from "@/lib/auth/guards";
-import {
-  getRoleList,
-  createRole,
-  getAllPermissions,
-} from "@/features/roles/services/role.service";
+import { getRoleList, createRole, getAllPermissions } from "@/features/roles/services/role.service";
 import { createRoleSchema } from "@/features/roles/schemas/role.schema";
 import { withApiHandler } from "@/lib/middleware/api-handler";
 
@@ -17,10 +13,7 @@ export const GET = withApiHandler(
 
     logger.info("Fetching roles", { clientIp });
 
-    const [roleList, permissions] = await Promise.all([
-      getRoleList(),
-      getAllPermissions(),
-    ]);
+    const [roleList, permissions] = await Promise.all([getRoleList(), getAllPermissions()]);
 
     return NextResponse.json(successResponse({ ...roleList, permissions }));
   },

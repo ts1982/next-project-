@@ -6,10 +6,7 @@ export const createStoreSchema = z
       .string({ message: "店舗名は必須です" })
       .min(1, "店舗名は必須です")
       .max(100, "店舗名は100文字以内で入力してください"),
-    description: z
-      .string()
-      .max(500, "説明は500文字以内で入力してください")
-      .optional(),
+    description: z.string().max(500, "説明は500文字以内で入力してください").optional(),
     address: z
       .string({ message: "住所は必須です" })
       .min(1, "住所は必須です")

@@ -3,9 +3,7 @@ import repl from "repl";
 
 const prisma = new PrismaClient();
 
-console.log(
-  "✅ Prisma REPL ready! Use `prisma` variable to interact with the database."
-);
+console.log("✅ Prisma REPL ready! Use `prisma` variable to interact with the database.");
 console.log("Example: await prisma.user.findMany()");
 console.log("");
 

@@ -1,26 +1,26 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Store as StoreIcon, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Pagination } from "@/components/common/pagination"
-import { StoreTable } from "@/features/stores/components/store-table"
-import { StoreSearch } from "@/features/stores/components/store-search"
-import { StoreCreateModal } from "@/features/stores/components/store-create-modal"
-import { usePermissions } from "@/lib/hooks/use-permissions"
-import type { Store } from "@/features/stores"
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Store as StoreIcon, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/common/pagination";
+import { StoreTable } from "@/features/stores/components/store-table";
+import { StoreSearch } from "@/features/stores/components/store-search";
+import { StoreCreateModal } from "@/features/stores/components/store-create-modal";
+import { usePermissions } from "@/lib/hooks/use-permissions";
+import type { Store } from "@/features/stores";
 
 interface StoresClientPageProps {
-  initialStores: Store[]
-  initialSearch: string
+  initialStores: Store[];
+  initialSearch: string;
   initialPagination: {
-    total: number
-    page: number
-    pageSize: number
-    totalPages: number
-  }
-  timezone: string
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+  timezone: string;
 }
 
 export function StoresClientPage({
@@ -29,18 +29,18 @@ export function StoresClientPage({
   initialPagination,
   timezone,
 }: StoresClientPageProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const { can } = usePermissions()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { can } = usePermissions();
 
-  const canCreate = can("stores", "create")
+  const canCreate = can("stores", "create");
 
   const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.set("page", String(newPage))
-    router.push(`?${params.toString()}`)
-  }
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(newPage));
+    router.push(`?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -84,5 +84,5 @@ export function StoresClientPage({
         />
       )}
     </div>
-  )
+  );
 }

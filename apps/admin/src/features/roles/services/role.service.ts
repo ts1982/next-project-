@@ -60,9 +60,7 @@ export async function getRoleList(): Promise<RoleListResponse> {
 }
 
 /** ロール詳細を取得 */
-export async function getRoleById(
-  id: string,
-): Promise<RoleWithPermissions | null> {
+export async function getRoleById(id: string): Promise<RoleWithPermissions | null> {
   const role = await prisma.role.findUnique({
     where: { id },
     include: ROLE_WITH_PERMISSIONS_INCLUDE,
@@ -72,9 +70,7 @@ export async function getRoleById(
 }
 
 /** ロールを作成 */
-export async function createRole(
-  input: CreateRoleInput,
-): Promise<RoleWithPermissions> {
+export async function createRole(input: CreateRoleInput): Promise<RoleWithPermissions> {
   const role = await prisma.role.create({
     data: {
       name: input.name,
@@ -93,10 +89,7 @@ export async function createRole(
 }
 
 /** ロールを更新 */
-export async function updateRole(
-  id: string,
-  input: UpdateRoleInput,
-): Promise<RoleWithPermissions> {
+export async function updateRole(id: string, input: UpdateRoleInput): Promise<RoleWithPermissions> {
   const role = await prisma.$transaction(async (tx) => {
     // パーミッションが指定されている場合は差し替え（delete + create）
     if (input.permissions) {
@@ -136,9 +129,7 @@ export async function deleteRole(id: string): Promise<void> {
   });
 
   if (userCount > 0) {
-    throw new Error(
-      `このロールは ${userCount} 人のユーザーに割り当てられているため削除できません`,
-    );
+    throw new Error(`このロールは ${userCount} 人のユーザーに割り当てられているため削除できません`);
   }
 
   await prisma.role.delete({

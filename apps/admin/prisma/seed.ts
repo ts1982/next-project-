@@ -1,8 +1,4 @@
-import {
-  PrismaClient,
-  PermissionScope,
-  NotificationType,
-} from "@prisma/client";
+import { PrismaClient, PermissionScope, NotificationType } from "@prisma/client";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcryptjs";
 
@@ -377,9 +373,7 @@ async function main() {
   await prisma.notification.createMany({
     data: notifications,
   });
-  console.log(
-    `✅ Created ${notifications.length} notifications for admin user`,
-  );
+  console.log(`✅ Created ${notifications.length} notifications for admin user`);
 
   // 作成されたデータのサンプルを表示
   const sampleUsers = await prisma.user.findMany({
@@ -404,22 +398,14 @@ async function main() {
 
   console.log("\n👥 Users:");
   sampleUsers.forEach((user) => {
-    console.log(
-      `  - ${user.name} (${user.email}) [${user.role.name}] [${user.timezone}]`,
-    );
+    console.log(`  - ${user.name} (${user.email}) [${user.role.name}] [${user.timezone}]`);
   });
 
   console.log("\n🏪 Stores:");
   sampleStores.forEach((store) => {
-    const publishedAt = store.publishedAt
-      ? store.publishedAt.toISOString()
-      : "未設定";
-    const unpublishedAt = store.unpublishedAt
-      ? store.unpublishedAt.toISOString()
-      : "無期限";
-    console.log(
-      `  - ${store.name} (公開: ${publishedAt}, 終了: ${unpublishedAt})`,
-    );
+    const publishedAt = store.publishedAt ? store.publishedAt.toISOString() : "未設定";
+    const unpublishedAt = store.unpublishedAt ? store.unpublishedAt.toISOString() : "無期限";
+    console.log(`  - ${store.name} (公開: ${publishedAt}, 終了: ${unpublishedAt})`);
   });
 
   console.log("\n✨ Seeding completed!");

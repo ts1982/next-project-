@@ -1,7 +1,7 @@
-import { Suspense } from "react"
-import { BarChart, Users, TrendingUp, UserPlus } from "lucide-react"
-import { prisma } from "@/lib/db/prisma"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Suspense } from "react";
+import { BarChart, Users, TrendingUp, UserPlus } from "lucide-react";
+import { prisma } from "@/lib/db/prisma";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 async function getDashboardStats() {
   const [totalUsers, recentUsers] = await Promise.all([
@@ -16,24 +16,24 @@ async function getDashboardStats() {
         createdAt: true,
       },
     }),
-  ])
+  ]);
 
   // 今月の新規ユーザー数を計算
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const newUsersThisMonth = await prisma.user.count({
     where: {
       createdAt: {
         gte: startOfMonth,
       },
     },
-  })
+  });
 
   return {
     totalUsers,
     newUsersThisMonth,
     recentUsers,
-  }
+  };
 }
 
 function StatsCardSkeleton() {
@@ -42,11 +42,11 @@ function StatsCardSkeleton() {
       <div className="h-4 w-24 bg-muted rounded mb-2" />
       <div className="h-8 w-16 bg-muted rounded" />
     </div>
-  )
+  );
 }
 
 async function DashboardStats() {
-  const stats = await getDashboardStats()
+  const stats = await getDashboardStats();
 
   return (
     <>
@@ -58,9 +58,7 @@ async function DashboardStats() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              登録済みユーザーの総数
-            </p>
+            <p className="text-xs text-muted-foreground">登録済みユーザーの総数</p>
           </CardContent>
         </Card>
 
@@ -71,9 +69,7 @@ async function DashboardStats() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.newUsersThisMonth}</div>
-            <p className="text-xs text-muted-foreground">
-              今月登録されたユーザー
-            </p>
+            <p className="text-xs text-muted-foreground">今月登録されたユーザー</p>
           </CardContent>
         </Card>
 
@@ -84,9 +80,7 @@ async function DashboardStats() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">-</div>
-            <p className="text-xs text-muted-foreground">
-              準備中
-            </p>
+            <p className="text-xs text-muted-foreground">準備中</p>
           </CardContent>
         </Card>
       </div>
@@ -120,7 +114,7 @@ async function DashboardStats() {
         </CardContent>
       </Card>
     </>
-  )
+  );
 }
 
 const DashboardPage = () => {
@@ -146,7 +140,7 @@ const DashboardPage = () => {
         <DashboardStats />
       </Suspense>
     </div>
-  )
-}
+  );
+};
 
-export default DashboardPage
+export default DashboardPage;

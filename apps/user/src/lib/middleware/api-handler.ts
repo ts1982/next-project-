@@ -8,10 +8,7 @@ export interface ApiHandlerContext {
   params: Record<string, string>;
 }
 
-type ApiHandler = (
-  request: NextRequest,
-  context: ApiHandlerContext,
-) => Promise<NextResponse>;
+type ApiHandler = (request: NextRequest, context: ApiHandlerContext) => Promise<NextResponse>;
 
 export function withApiHandler(handler: ApiHandler) {
   return async (
@@ -24,10 +21,9 @@ export function withApiHandler(handler: ApiHandler) {
       return await handler(request, { params });
     } catch (error) {
       if (error instanceof UnauthorizedError) {
-        return NextResponse.json(
-          errorResponse("認証が必要です", undefined, "UNAUTHORIZED"),
-          { status: 401 },
-        );
+        return NextResponse.json(errorResponse("認証が必要です", undefined, "UNAUTHORIZED"), {
+          status: 401,
+        });
       }
 
       if (error instanceof ZodError) {
@@ -46,21 +42,14 @@ export function withApiHandler(handler: ApiHandler) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2025") {
           return NextResponse.json(
-            errorResponse(
-              "対象のリソースが見つかりません",
-              undefined,
-              "NOT_FOUND",
-            ),
+            errorResponse("対象のリソースが見つかりません", undefined, "NOT_FOUND"),
             { status: 404 },
           );
         }
       }
 
       console.error("API Error:", error);
-      return NextResponse.json(
-        errorResponse("サーバーエラーが発生しました"),
-        { status: 500 },
-      );
+      return NextResponse.json(errorResponse("サーバーエラーが発生しました"), { status: 500 });
     }
   };
 }

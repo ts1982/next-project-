@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,19 +18,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { formatInTimezone } from "@/lib/utils/timezone"
-import type { AdminNotification, NotificationType } from "../types/admin-notification.types"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { formatInTimezone } from "@/lib/utils/timezone";
+import type { AdminNotification, NotificationType } from "../types/admin-notification.types";
 
 interface AdminNotificationDetailModalProps {
-  notification: AdminNotification | null
-  timezone: string
-  isOpen: boolean
-  onClose: () => void
-  onDeleted: () => void
-  onEdit: () => void
+  notification: AdminNotification | null;
+  timezone: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onDeleted: () => void;
+  onEdit: () => void;
 }
 
 const TYPE_LABELS: Record<NotificationType, string> = {
@@ -38,7 +38,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   INFO: "お知らせ",
   WARNING: "警告",
   PROMOTION: "キャンペーン",
-}
+};
 
 export function AdminNotificationDetailModal({
   notification,
@@ -48,42 +48,40 @@ export function AdminNotificationDetailModal({
   onDeleted,
   onEdit,
 }: AdminNotificationDetailModalProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [error, setError] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleDelete = async () => {
-    if (!notification) return
+    if (!notification) return;
 
-    setIsDeleting(true)
-    setError("")
+    setIsDeleting(true);
+    setError("");
     try {
       const res = await fetch(`/api/notifications/${notification.id}`, {
         method: "DELETE",
-      })
+      });
       if (!res.ok) {
-        const data = await res.json()
-        setError(data.error || "削除に失敗しました")
-        return
+        const data = await res.json();
+        setError(data.error || "削除に失敗しました");
+        return;
       }
-      onDeleted()
-      onClose()
+      onDeleted();
+      onClose();
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
+  };
 
-  if (!notification) return null
+  if (!notification) return null;
 
-  const isDelivered = !!notification.deliveredAt
+  const isDelivered = !!notification.deliveredAt;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>通知詳細</DialogTitle>
-          <DialogDescription>
-            通知の詳細情報を表示しています。
-          </DialogDescription>
+          <DialogDescription>通知の詳細情報を表示しています。</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           {error && (
@@ -172,22 +170,14 @@ export function AdminNotificationDetailModal({
           <div className="flex justify-between border-t pt-4">
             <div className="flex gap-2">
               {!isDelivered && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onEdit}
-                >
+                <Button variant="outline" size="sm" onClick={onEdit}>
                   編集
                 </Button>
               )}
               {!isDelivered && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={isDeleting}
-                    >
+                    <Button variant="destructive" size="sm" disabled={isDeleting}>
                       {isDeleting ? "削除中..." : "削除"}
                     </Button>
                   </AlertDialogTrigger>
@@ -218,5 +208,5 @@ export function AdminNotificationDetailModal({
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

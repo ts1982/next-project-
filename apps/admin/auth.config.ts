@@ -7,7 +7,14 @@ import { checkPermission } from "./src/lib/auth/permissions";
 // ---------------------------------------------------------------------------
 
 /** 認証が必要なルート */
-const PROTECTED_PATHS = ["/dashboard", "/stores", "/admins", "/users", "/roles", "/notifications"] as const;
+const PROTECTED_PATHS = [
+  "/dashboard",
+  "/stores",
+  "/admins",
+  "/users",
+  "/roles",
+  "/notifications",
+] as const;
 
 /**
  * ルートごとに必要なパーミッション
@@ -41,35 +48,24 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user?.id;
       const pathname = nextUrl.pathname;
 
-      const isProtectedRoute = PROTECTED_PATHS.some((path) =>
-        pathname.startsWith(path),
-      );
+      const isProtectedRoute = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
 
       const isAuthPage = pathname === "/login";
 
       if (isProtectedRoute && !isLoggedIn) {
         // 未認証で保護されたルートにアクセス → ログインページへ
         const callbackUrl = encodeURIComponent(nextUrl.href);
-        return Response.redirect(
-          new URL(`/login?callbackUrl=${callbackUrl}`, nextUrl),
-        );
+        return Response.redirect(new URL(`/login?callbackUrl=${callbackUrl}`, nextUrl));
       }
 
       // パーミッションベースのルート保護
       if (isLoggedIn) {
         const permissions: string[] =
-          ((auth?.user as unknown as Record<string, unknown>)
-            ?.permissions as string[]) ?? [];
+          ((auth?.user as unknown as Record<string, unknown>)?.permissions as string[]) ?? [];
 
-        const requiredPerm = ROUTE_PERMISSIONS.find((rp) =>
-          pathname.startsWith(rp.path),
-        );
+        const requiredPerm = ROUTE_PERMISSIONS.find((rp) => pathname.startsWith(rp.path));
         if (requiredPerm) {
-          const scope = checkPermission(
-            permissions,
-            requiredPerm.resource,
-            requiredPerm.action,
-          );
+          const scope = checkPermission(permissions, requiredPerm.resource, requiredPerm.action);
           if (!scope) {
             // 権限なし → ダッシュボードへリダイレクト
             return Response.redirect(new URL("/dashboard", nextUrl));
