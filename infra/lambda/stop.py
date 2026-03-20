@@ -40,17 +40,26 @@ def handler(event, context):
     source = event.get("source", "manual")
     print(f"[stop] Stopping environment (source: {source})...")
 
-    # 1) auto-stop スケジュールが残っていれば削除（手動停止の場合の cleanup）
-    delete_auto_stop_schedule()
+    try:
+        # 1) auto-stop スケジュールが残っていれば削除（手動停止の場合の cleanup）
+        delete_auto_stop_schedule()
 
-    # 2) Edge Stack 削除 (ALB + ECS Service + DNS + Lambda + NAT GW)
-    delete_edge_stack()
+        # 2) Edge Stack 削除 (ALB + ECS Service + DNS + Lambda + NAT GW)
+        delete_edge_stack()
 
-    # 3) Edge Stack 削除完了待機 (最大 ~10 分)
-    wait_edge_stack_deleted()
+        # 3) Edge Stack 削除完了待機 (最大 ~10 分)
+        wait_edge_stack_deleted()
 
-    # 4) RDS 完全削除（スナップショット保存後）
-    delete_rds()
+        # 4) RDS 完全削除（スナップショット保存後）
+        delete_rds()
+    except Exception as e:
+        print(f"[stop] ERROR: {e}")
+        from slack_notify import notify_stop_error
+        notify_stop_error(e, source)
+        raise
+
+    from slack_notify import notify_stop_success
+    notify_stop_success(source)
 
     print("[stop] Environment is down!")
     return {"statusCode": 200, "body": json.dumps({"message": "stopped"})}

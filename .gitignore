@@ -54,3 +54,10 @@ next-env.d.ts
 
 # claude
 .claude
+
+# python
+__pycache__/
+*.pyc
+
+# lambda deploy artifacts
+infra/lambda/*.zip

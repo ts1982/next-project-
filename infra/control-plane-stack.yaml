@@ -156,12 +156,16 @@ Resources:
                 Condition:
                   StringEquals:
                     iam:AWSServiceName: elasticloadbalancing.amazonaws.com
-              # SSM (update DATABASE_URL after RDS restore)
+              # SSM (update DATABASE_URL after RDS restore + read SLACK_WEBHOOK_URL)
               - Effect: Allow
                 Action:
                   - ssm:GetParameter
                   - ssm:PutParameter
                 Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/DATABASE_URL"
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/SLACK_WEBHOOK_URL"
               # EventBridge Scheduler (create/delete auto-stop schedule)
               - Effect: Allow
                 Action:
@@ -274,6 +278,85 @@ Resources:
       Principal: scheduler.amazonaws.com
       SourceArn: !Sub "arn:aws:scheduler:${AWS::Region}:${AWS::AccountId}:schedule/default/${ProjectName}-auto-stop"
 
+  # ----------------------------------------------------------
+  # Infra Notify Lambda (CloudFormation events → Slack)
+  # ----------------------------------------------------------
+  InfraNotifyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-infra-notify-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ReadSlackWebhook
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/SLACK_WEBHOOK_URL"
+
+  InfraNotifyLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-infra-notify"
+      Runtime: python3.12
+      Handler: infra_notify.handler
+      Code:
+        S3Bucket: !Sub "${ProjectName}-lambda-deploy"
+        S3Key: lambda/infra_notify.zip
+      Timeout: 30
+      MemorySize: 128
+      Role: !GetAtt InfraNotifyRole.Arn
+      Environment:
+        Variables:
+          PROJECT_NAME: !Ref ProjectName
+
+  InfraNotifyLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref InfraNotifyLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EdgeStackEventRule.Arn
+
+  # ----------------------------------------------------------
+  # EventBridge Rule: CloudFormation Stack Status Change
+  # ----------------------------------------------------------
+  EdgeStackEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${ProjectName}-edge-stack-events"
+      Description: "Notify Slack on Edge Stack status changes"
+      EventPattern:
+        source:
+          - aws.cloudformation
+        detail-type:
+          - "CloudFormation Stack Status Change"
+        detail:
+          stack-id:
+            - suffix: !Sub "stack/${ProjectName}-edge/"
+          status-details:
+            status:
+              - CREATE_COMPLETE
+              - CREATE_FAILED
+              - UPDATE_COMPLETE
+              - UPDATE_ROLLBACK_COMPLETE
+              - ROLLBACK_COMPLETE
+              - DELETE_COMPLETE
+              - DELETE_FAILED
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt InfraNotifyLambda.Arn
+          Id: InfraNotifyTarget
+
 Outputs:
   StartLambdaArn:
     Value: !GetAtt StartLambda.Arn
@@ -281,6 +364,9 @@ Outputs:
   StopLambdaArn:
     Value: !GetAtt StopLambda.Arn
     Description: "Invoke this Lambda to stop the environment"
+  InfraNotifyLambdaArn:
+    Value: !GetAtt InfraNotifyLambda.Arn
+    Description: "CloudFormation event → Slack notification Lambda"
   StartCommand:
     Value: !Sub "aws lambda invoke --function-name ${ProjectName}-start /dev/stdout"
     Description: "CLI command to start the environment"

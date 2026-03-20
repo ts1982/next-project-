@@ -51,20 +51,30 @@ SCHEDULE_NAME = f"{PROJECT_NAME}-auto-stop"
 def handler(event, context):
     print("[start] Starting environment...")
 
-    # 1) RDS 起動 or スナップショットから復元
-    ensure_rds()
+    try:
+        # 1) RDS 起動 or スナップショットから復元
+        ensure_rds()
 
-    # 2) RDS available 待機 (通常 5-10 分)
-    wait_rds_available()
+        # 2) RDS available 待機 (通常 5-10 分)
+        wait_rds_available()
 
-    # 3) SSM DATABASE_URL を新しい RDS エンドポイントで更新
-    update_ssm_database_url()
+        # 3) SSM DATABASE_URL を新しい RDS エンドポイントで更新
+        update_ssm_database_url()
 
-    # 4) Edge Stack 作成 (非同期 — Lambda は完了を待たない)
-    create_edge_stack()
-
-    # 5) auto-stop スケジュール作成 (現在 + AUTO_STOP_HOURS)
-    create_auto_stop_schedule()
+        # 4) Edge Stack 作成 (非同期 — Lambda は完了を待たない)
+        create_edge_stack()
+    except Exception as e:
+        print(f"[start] ERROR: {e}")
+        from slack_notify import notify_start_error
+        notify_start_error(e)
+        raise
+    finally:
+        # 5) auto-stop スケジュール作成 (現在 + AUTO_STOP_HOURS)
+        # Edge Stack 作成の成否にかかわらず、RDS が起動していればコスト発生するため必ずスケジュールする
+        try:
+            create_auto_stop_schedule()
+        except Exception as e:
+            print(f"[start] WARNING: Failed to create auto-stop schedule: {e}")
 
     print("[start] RDS is up, DATABASE_URL synced. Edge Stack is being created (async).")
     print("[start] Check progress: aws cloudformation describe-stacks "
@@ -189,6 +199,12 @@ def update_ssm_database_url():
 # 失敗状態のスタック（削除→再作成が必要）
 _FAILED_STATUSES = {"ROLLBACK_COMPLETE", "CREATE_FAILED", "ROLLBACK_FAILED", "DELETE_FAILED"}
 
+# 操作中の状態（待機してからリトライするか、そのままスキップ）
+_IN_PROGRESS_STATUSES = {
+    "CREATE_IN_PROGRESS", "UPDATE_IN_PROGRESS", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
+    "UPDATE_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
+}
+
 
 # ---- Edge Stack (async — does not wait for completion) ----
 def create_edge_stack():
@@ -196,6 +212,10 @@ def create_edge_stack():
         resp = cfn.describe_stacks(StackName=EDGE_STACK_NAME)
         status = resp["Stacks"][0]["StackStatus"]
         print(f"[cfn] Stack {EDGE_STACK_NAME} status: {status}")
+
+        if status in _IN_PROGRESS_STATUSES:
+            print(f"[cfn] Stack is {status} — skipping (already in progress)")
+            return
 
         if status in _FAILED_STATUSES:
             print(f"[cfn] Stack in {status} state, deleting before recreate...")
