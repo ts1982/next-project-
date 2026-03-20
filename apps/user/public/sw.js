@@ -2,7 +2,6 @@
 /// <reference lib="webworker" />
 
 /** @type {ServiceWorkerGlobalScope} */
-// eslint-disable-next-line no-restricted-globals
 const sw = self;
 
 sw.addEventListener("push", (event) => {

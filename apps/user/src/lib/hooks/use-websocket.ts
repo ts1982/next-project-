@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
@@ -23,49 +23,52 @@ export function useWebSocket({ onNotification }: UseWebSocketOptions = {}) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onNotificationRef = useRef(onNotification);
-  onNotificationRef.current = onNotification;
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl =
-      process.env.NEXT_PUBLIC_WS_URL ||
-      `${protocol}//${window.location.host}/ws`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    setStatus("connecting");
-
-    ws.onopen = () => {
-      setStatus("connected");
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as WebSocketMessage;
-        if (data.type === "NEW_NOTIFICATION" && data.notification) {
-          onNotificationRef.current?.(data.notification);
-        }
-      } catch {
-        // ignore parse errors
-      }
-    };
-
-    ws.onclose = () => {
-      setStatus("disconnected");
-      wsRef.current = null;
-      // 自動再接続（3秒後）
-      reconnectTimerRef.current = setTimeout(() => {
-        connect();
-      }, 3000);
-    };
-
-    ws.onerror = () => {
-      ws.close();
-    };
-  }, []);
 
   useEffect(() => {
+    onNotificationRef.current = onNotification;
+  }, [onNotification]);
+
+  useEffect(() => {
+    function connect() {
+      if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl =
+        process.env.NEXT_PUBLIC_WS_URL ||
+        `${protocol}//${window.location.host}/ws`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      setStatus("connecting");
+
+      ws.onopen = () => {
+        setStatus("connected");
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as WebSocketMessage;
+          if (data.type === "NEW_NOTIFICATION" && data.notification) {
+            onNotificationRef.current?.(data.notification);
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+
+      ws.onclose = () => {
+        setStatus("disconnected");
+        wsRef.current = null;
+        // 自動再接続（3秒後）
+        reconnectTimerRef.current = setTimeout(() => {
+          connect();
+        }, 3000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
     connect();
 
     return () => {
@@ -74,7 +77,7 @@ export function useWebSocket({ onNotification }: UseWebSocketOptions = {}) {
       }
       wsRef.current?.close();
     };
-  }, [connect]);
+  }, []);
 
   return { status };
 }
