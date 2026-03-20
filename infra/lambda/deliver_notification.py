@@ -8,7 +8,7 @@ Event payload:
 
 Required environment variables:
   DATABASE_URL          - PostgreSQL 接続文字列
-  USER_APP_URL          - User App のベース URL（ALB 経由）
+  USER_APP_URL          - Studify Click のベース URL（ALB 経由）
   INTERNAL_API_SECRET   - /api/internal/broadcast 認証トークン
 """
 
@@ -161,7 +161,7 @@ def _deliver(conn, notification_id: str):
 
 def _broadcast(user_app_url: str, secret: str, user_ids: list, notification: dict):
     """
-    User App の /api/internal/broadcast に WebSocket + Push 通知を依頼する。
+    Studify Click の /api/internal/broadcast に WebSocket + Push 通知を依頼する。
     失敗しても配信成功扱い（fire-and-forget）。
     """
     payload = json.dumps({"userIds": user_ids, "notification": notification}).encode("utf-8")

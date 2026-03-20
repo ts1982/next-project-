@@ -374,7 +374,7 @@ async function cancelScheduler(schedulerName: string): Promise<void> {
 }
 
 /**
- * User App にリアルタイム通知をブロードキャストする
+ * Studify Click にリアルタイム通知をブロードキャストする
  */
 async function broadcastToUserApp(
   userIds: string[],

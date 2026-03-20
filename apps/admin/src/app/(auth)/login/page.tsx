@@ -75,7 +75,7 @@ function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="メールアドレスを入力してください"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -90,7 +90,7 @@ function LoginForm() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="パスワードを入力してください"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -121,9 +121,6 @@ function LoginForm() {
               )}
             </Button>
           </form>
-          <div className="mt-6 rounded-lg bg-muted/50 p-3 text-center text-xs text-muted-foreground">
-            <p>テストアカウント: admin@example.com / admin123</p>
-          </div>
         </CardContent>
       </Card>
     </div>

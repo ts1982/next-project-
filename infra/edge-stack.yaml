@@ -248,7 +248,7 @@ Resources:
 
   # ----------------------------------------------------------
   # Cloud Map — User サービスディスカバリ
-  # Lambda が VPC 内部 DNS で User App に直接アクセスするため。
+  # Lambda が VPC 内部 DNS で Studify Click に直接アクセスするため。
   # NAT Gateway（~$45/月）の代替として Cloud Map（~$0.1/月）を使用。
   # ----------------------------------------------------------
   UserServiceDiscovery:

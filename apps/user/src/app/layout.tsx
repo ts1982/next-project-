@@ -5,7 +5,7 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "User App",
+  title: "Studify Click",
   description: "通知確認アプリ",
 };
 
