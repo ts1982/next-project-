@@ -36,6 +36,7 @@ STOP_LAMBDA_ARN = os.environ["STOP_LAMBDA_ARN"]
 SCHEDULER_ROLE_ARN = os.environ["SCHEDULER_ROLE_ARN"]
 RDS_SECURITY_GROUP_ID = os.environ["RDS_SECURITY_GROUP_ID"]
 DB_SUBNET_GROUP_NAME = os.environ["DB_SUBNET_GROUP_NAME"]
+CFN_ROLE_ARN = os.environ["CFN_ROLE_ARN"]
 
 SNAPSHOT_PREFIX = f"{PROJECT_NAME}-final-snap"
 
@@ -230,6 +231,7 @@ def create_edge_stack():
                     {"ParameterKey": "ProjectName", "ParameterValue": PROJECT_NAME},
                 ],
                 Capabilities=["CAPABILITY_NAMED_IAM"],
+                RoleARN=CFN_ROLE_ARN,
             )
         else:
             print(f"[cfn] Updating stack {EDGE_STACK_NAME}...")
@@ -240,6 +242,7 @@ def create_edge_stack():
                     {"ParameterKey": "ProjectName", "ParameterValue": PROJECT_NAME},
                 ],
                 Capabilities=["CAPABILITY_NAMED_IAM"],
+                RoleARN=CFN_ROLE_ARN,
             )
     except cfn.exceptions.ClientError as e:
         if "does not exist" in str(e):
@@ -251,6 +254,7 @@ def create_edge_stack():
                     {"ParameterKey": "ProjectName", "ParameterValue": PROJECT_NAME},
                 ],
                 Capabilities=["CAPABILITY_NAMED_IAM"],
+                RoleARN=CFN_ROLE_ARN,
             )
         elif "No updates are to be performed" in str(e):
             print("[cfn] No changes needed")

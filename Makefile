@@ -174,20 +174,26 @@ infra-start:
 	done
 	@echo "✅ Environment is UP!"
 	@echo ""
-	@echo "🔍 Checking DNS resolution..."
+	@echo "🔍 Checking DNS resolution (via 8.8.8.8)..."
 	@DNS_OK=true; \
 	for DOMAIN in admin.studify.click app.studify.click; do \
-	  RESULT=$$(nslookup $$DOMAIN 2>/dev/null); \
-	  if echo "$$RESULT" | grep -v "#53" | grep -q "Address:"; then \
-	    echo "   ✅ $$DOMAIN → OK"; \
-	  else \
+	  RESOLVED=false; \
+	  for i in 1 2 3; do \
+	    if nslookup $$DOMAIN 8.8.8.8 2>/dev/null | grep -v "#53" | grep -q "Address:"; then \
+	      echo "   ✅ $$DOMAIN → OK"; \
+	      RESOLVED=true; \
+	      break; \
+	    fi; \
+	    sleep 5; \
+	  done; \
+	  if [ "$$RESOLVED" = "false" ]; then \
 	    echo "   ❌ $$DOMAIN → DNS resolution failed"; \
 	    DNS_OK=false; \
 	  fi; \
 	done; \
 	if [ "$$DNS_OK" = "false" ]; then \
 	  echo ""; \
-	  echo "⚠️  DNS cache issue detected. Run:"; \
+	  echo "⚠️  DNS not yet propagated. Try:"; \
 	  echo "      make dns-flush"; \
 	  echo ""; \
 	  ALB_DNS=$$(aws cloudformation describe-stacks \
@@ -309,16 +315,30 @@ infra-status:
 
 dns-flush:
 	@echo "🔄 Flushing local DNS cache..."
-	@sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder
+	@sudo sh -c 'dscacheutil -flushcache && killall -HUP mDNSResponder'
 	@echo "✅ DNS cache flushed"
-	@sleep 2
-	@for DOMAIN in admin.studify.click app.studify.click; do \
-	  if nslookup $$DOMAIN 2>/dev/null | grep -v "#53" | grep -q "Address:"; then \
-	    echo "   ✅ $$DOMAIN → OK"; \
-	  else \
-	    echo "   ❌ $$DOMAIN → still unresolved (try changing DNS to 8.8.8.8)"; \
+	@echo "🔍 Checking DNS via Google Public DNS (8.8.8.8)..."
+	@ALL_OK=true; \
+	for DOMAIN in admin.studify.click app.studify.click; do \
+	  RESOLVED=false; \
+	  for i in 1 2 3; do \
+	    if nslookup $$DOMAIN 8.8.8.8 2>/dev/null | grep -v "#53" | grep -q "Address:"; then \
+	      echo "   ✅ $$DOMAIN → OK"; \
+	      RESOLVED=true; \
+	      break; \
+	    fi; \
+	    sleep 5; \
+	  done; \
+	  if [ "$$RESOLVED" = "false" ]; then \
+	    echo "   ❌ $$DOMAIN → unresolved (Route53 propagation may still be in progress)"; \
+	    ALL_OK=false; \
 	  fi; \
-	done
+	done; \
+	if [ "$$ALL_OK" = "false" ]; then \
+	  echo ""; \
+	  echo "   💡 Route53 records may not have propagated yet."; \
+	  echo "      Wait a few minutes after 'make infra-start' and retry."; \
+	fi
 
 # ============================================================
 # Deploy (Docker images → ECR)
