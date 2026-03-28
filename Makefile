@@ -112,7 +112,7 @@ repl:
 	pnpm repl
 
 seed:
-	pnpm exec tsx prisma/seed.ts
+	cd packages/database && pnpm exec tsx prisma/seed.ts
 
 # Utility
 clean:
