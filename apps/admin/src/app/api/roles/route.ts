@@ -6,6 +6,7 @@ import { requirePermission } from "@/lib/auth/guards";
 import { getRoleList, createRole, getAllPermissions } from "@/features/roles/services/role.service";
 import { createRoleSchema } from "@/features/roles/schemas/role.schema";
 import { withApiHandler } from "@/lib/middleware/api-handler";
+import { audit } from "@/lib/audit/audit";
 
 export const GET = withApiHandler(
   async (request, { clientIp }) => {
@@ -22,7 +23,7 @@ export const GET = withApiHandler(
 
 export const POST = withApiHandler(
   async (request, { clientIp }) => {
-    await requirePermission("roles", "create");
+    const { user } = await requirePermission("roles", "create");
 
     const body = await request.json();
     const validated = createRoleSchema.parse(body);
@@ -30,6 +31,11 @@ export const POST = withApiHandler(
     logger.info("Creating role", { name: validated.name, clientIp });
 
     const role = await createRole(validated);
+
+    await audit(user.id, "role.create", `ロール「${role.name}」`, {
+      roleId: role.id,
+      permissions: validated.permissions,
+    });
 
     logger.info("Role created successfully", { id: role.id, name: role.name });
     return NextResponse.json(successResponse(role, "ロールを作成しました"), {

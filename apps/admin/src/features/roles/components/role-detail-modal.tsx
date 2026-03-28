@@ -143,6 +143,7 @@ export function RoleDetailModal({ role, permissions, isOpen, onClose }: RoleDeta
               <TabsTrigger value="detail">詳細</TabsTrigger>
               <TabsTrigger
                 value="edit"
+                disabled={role.isSystem}
                 onClick={() => {
                   if (activeTab !== "edit") initializeEditForm();
                 }}
@@ -185,25 +186,29 @@ export function RoleDetailModal({ role, permissions, isOpen, onClose }: RoleDeta
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  variant="destructive"
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  disabled={isSubmitting}
-                  className="gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  削除
-                </Button>
-                <Button
-                  onClick={() => {
-                    initializeEditForm();
-                    setActiveTab("edit");
-                  }}
-                  className="gap-2"
-                >
-                  <Pencil className="h-4 w-4" />
-                  編集
-                </Button>
+                {!role.isSystem && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    disabled={isSubmitting}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    削除
+                  </Button>
+                )}
+                {!role.isSystem && (
+                  <Button
+                    onClick={() => {
+                      initializeEditForm();
+                      setActiveTab("edit");
+                    }}
+                    className="gap-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    編集
+                  </Button>
+                )}
               </div>
             </TabsContent>
 

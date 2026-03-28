@@ -88,25 +88,25 @@ db-shell:
 # Prisma
 prisma-migrate:
 	@read -p "Enter migration name: " name; \
-	pnpm exec prisma migrate dev --name $$name
+	cd packages/database && pnpm exec prisma migrate dev --name $$name
 
 prisma-reset:
 	@echo "⚠️  This will delete all data in the database!"
 	@read -p "Are you sure? (y/N): " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
-		pnpm exec prisma migrate reset; \
+		cd packages/database && pnpm exec prisma migrate reset; \
 	else \
 		echo "Cancelled."; \
 	fi
 
 prisma-studio:
-	pnpm exec prisma studio
+	cd packages/database && pnpm exec prisma studio
 
 prisma-generate:
-	pnpm exec prisma generate
+	cd packages/database && pnpm exec prisma generate
 
 prisma-format:
-	pnpm exec prisma format
+	cd packages/database && pnpm exec prisma format
 
 repl:
 	pnpm repl

@@ -24,6 +24,7 @@ model Role {
   id          String   @id @default(cuid())
   name        String   @unique @db.VarChar(50)
   description String?  @db.VarChar(200)
+  isSystem    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -193,6 +194,24 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Audit Log
+// ---------------------------------------------------------------------------
+
+/// 監査ログ（権限・ロール変更等のセキュリティ操作を記録）
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String   @db.VarChar(50)
+  action    String   @db.VarChar(50)
+  target    String   @db.VarChar(200)
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
 }
 
 // ---------------------------------------------------------------------------

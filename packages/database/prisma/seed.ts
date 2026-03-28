@@ -74,6 +74,7 @@ async function main() {
     data: {
       name: "ADMIN",
       description: "管理者 — 全リソースに対する全権限",
+      isSystem: true,
     },
   });
 

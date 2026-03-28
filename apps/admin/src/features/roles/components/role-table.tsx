@@ -25,7 +25,16 @@ export function RoleTable({ roles, permissions }: RoleTableProps) {
     {
       key: "name",
       header: "ロール名",
-      render: (role) => <span className="font-medium">{role.name}</span>,
+      render: (role) => (
+        <span className="font-medium">
+          {role.name}
+          {role.isSystem && (
+            <Badge variant="outline" className="ml-2 text-xs">
+              システム
+            </Badge>
+          )}
+        </span>
+      ),
     },
     {
       key: "description",

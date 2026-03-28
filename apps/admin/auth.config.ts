@@ -26,6 +26,7 @@ const ROUTE_PERMISSIONS: {
   action: Action;
 }[] = [
   { path: "/admins", resource: "admins", action: "read" },
+  { path: "/users", resource: "notifications", action: "read" },
   { path: "/stores", resource: "stores", action: "read" },
   { path: "/roles", resource: "roles", action: "read" },
   { path: "/notifications", resource: "notifications", action: "read" },

@@ -6,6 +6,8 @@ import {
   RESOURCE_LABELS,
   ACTION_LABELS,
   SCOPE_LABELS,
+  OWN_SCOPE_RESOURCES,
+  type Resource,
   type PermissionScope,
 } from "@/lib/auth/permissions";
 import type { PermissionDefinition } from "../types/role.types";
@@ -57,16 +59,22 @@ export function PermissionGrid({
     return selectionMap.get(pid) ?? null;
   }
 
-  /** セルのスコープを次の値に切り替え: null → ALL → OWN → null */
+  /** リソースが OWN スコープをサポートするか */
+  function supportsOwnScope(resource: string): boolean {
+    return OWN_SCOPE_RESOURCES.includes(resource as Resource);
+  }
+
+  /** セルのスコープを次の値に切り替え: null → ALL → OWN → null (OWN非対応なら null → ALL → null) */
   function cycleScope(resource: string, action: string) {
     if (readOnly) return;
     const pid = permissionMap.get(`${resource}:${action}`);
     if (!pid) return;
 
     const current = selectionMap.get(pid) ?? null;
+    const hasOwn = supportsOwnScope(resource);
     let next: "ALL" | "OWN" | null;
     if (current === null) next = "ALL";
-    else if (current === "ALL") next = "OWN";
+    else if (current === "ALL") next = hasOwn ? "OWN" : null;
     else next = null;
 
     const newValue = value.filter((s) => s.permissionId !== pid);

@@ -6,7 +6,8 @@ import type {
   PermissionDefinition,
 } from "../types/role.types";
 import type { CreateRoleInput, UpdateRoleInput } from "../schemas/role.schema";
-import type { PermissionScope } from "@/lib/auth/permissions";
+import type { PermissionScope, Resource } from "@/lib/auth/permissions";
+import { OWN_SCOPE_RESOURCES } from "@/lib/auth/permissions";
 
 // ---------------------------------------------------------------------------
 // include 定義
@@ -31,6 +32,7 @@ function transformRole(role: RoleWithRelations): RoleWithPermissions {
     id: role.id,
     name: role.name,
     description: role.description,
+    isSystem: role.isSystem,
     createdAt: role.createdAt,
     updatedAt: role.updatedAt,
     permissions: role.rolePermissions.map((rp) => ({
@@ -41,6 +43,31 @@ function transformRole(role: RoleWithRelations): RoleWithPermissions {
       description: rp.permission.description,
     })),
   };
+}
+
+// ---------------------------------------------------------------------------
+// バリデーション
+// ---------------------------------------------------------------------------
+
+/** OWN スコープが非対応リソースに割り当てられていないか検証 */
+async function validateOwnScope(
+  permissions: { permissionId: string; scope: string }[],
+): Promise<void> {
+  const ownEntries = permissions.filter((p) => p.scope === "OWN");
+  if (ownEntries.length === 0) return;
+
+  const permRecords = await prisma.permission.findMany({
+    where: { id: { in: ownEntries.map((p) => p.permissionId) } },
+    select: { id: true, resource: true },
+  });
+
+  for (const rec of permRecords) {
+    if (!OWN_SCOPE_RESOURCES.includes(rec.resource as Resource)) {
+      throw new Error(
+        `リソース「${rec.resource}」は OWN スコープに対応していません`,
+      );
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -71,6 +98,8 @@ export async function getRoleById(id: string): Promise<RoleWithPermissions | nul
 
 /** ロールを作成 */
 export async function createRole(input: CreateRoleInput): Promise<RoleWithPermissions> {
+  await validateOwnScope(input.permissions);
+
   const role = await prisma.role.create({
     data: {
       name: input.name,
@@ -90,7 +119,22 @@ export async function createRole(input: CreateRoleInput): Promise<RoleWithPermis
 
 /** ロールを更新 */
 export async function updateRole(id: string, input: UpdateRoleInput): Promise<RoleWithPermissions> {
+  if (input.permissions) {
+    await validateOwnScope(input.permissions);
+  }
+
   const role = await prisma.$transaction(async (tx) => {
+    // システムロールの保護チェック
+    const existing = await tx.role.findUnique({ where: { id }, select: { isSystem: true } });
+    if (existing?.isSystem) {
+      if (input.name !== undefined) {
+        throw new Error("システムロールの名前は変更できません");
+      }
+      if (input.permissions !== undefined) {
+        throw new Error("システムロールの権限は変更できません");
+      }
+    }
+
     // パーミッションが指定されている場合は差し替え（delete + create）
     if (input.permissions) {
       await tx.rolePermission.deleteMany({
@@ -123,6 +167,16 @@ export async function updateRole(id: string, input: UpdateRoleInput): Promise<Ro
 
 /** ロールを削除 */
 export async function deleteRole(id: string): Promise<void> {
+  // システムロールの削除を禁止
+  const role = await prisma.role.findUnique({
+    where: { id },
+    select: { isSystem: true },
+  });
+
+  if (role?.isSystem) {
+    throw new Error("システムロールは削除できません");
+  }
+
   // ロールに紐づく管理者がいないか確認
   const userCount = await prisma.admin.count({
     where: { roleId: id },

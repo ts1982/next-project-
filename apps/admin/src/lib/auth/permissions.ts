@@ -51,6 +51,21 @@ export const SCOPE_LABELS: Record<PermissionScope, string> = {
   own: "自分のみ",
 };
 
+/** OWN スコープをサポートするリソース（所有概念があるもののみ） */
+export const OWN_SCOPE_RESOURCES: Resource[] = ["admins"];
+
+/**
+ * 権限レジストリ — システムで管理する全リソース×アクションの定義源
+ * 新しいリソースやアクションを追加する場合はここを更新する。
+ * シードファイルやバリデーションはこのレジストリを参照すべき。
+ */
+export const PERMISSION_REGISTRY = {
+  admins: ["read", "create", "update", "delete"],
+  stores: ["read", "create", "update", "delete"],
+  roles: ["read", "create", "update", "delete"],
+  notifications: ["read", "create", "update", "delete"],
+} as const satisfies Record<Resource, readonly Action[]>;
+
 // ---------------------------------------------------------------------------
 // ヘルパー関数
 // ---------------------------------------------------------------------------
