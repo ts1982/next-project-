@@ -1,8 +1,0 @@
-# ============================================================
-# Dockerfile.cron — lightweight curl container for cron tasks
-# Used as ECS RunTask (EventBridge triggered)
-# ============================================================
-
-FROM alpine:3.19
-RUN apk add --no-cache curl
-ENTRYPOINT ["sh", "-c", "curl -sf -H \"Authorization: Bearer $CRON_SECRET\" \"$ADMIN_URL/api/cron/deliver\""]

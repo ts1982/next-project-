@@ -31,6 +31,7 @@ export interface PushPayload {
   title: string;
   body: string;
   type?: string;
+  id?: string;
   url?: string;
 }
 

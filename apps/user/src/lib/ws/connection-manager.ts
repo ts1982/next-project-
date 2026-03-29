@@ -1,5 +1,7 @@
 import type { WebSocket } from "ws";
 
+const MAX_CONNECTIONS_PER_USER = 5;
+
 class ConnectionManager {
   private connections = new Map<string, Set<WebSocket>>();
 
@@ -8,6 +10,14 @@ class ConnectionManager {
     if (!set) {
       set = new Set();
       this.connections.set(userId, set);
+    }
+    // 接続数上限を超えた場合、最も古い接続を切断
+    if (set.size >= MAX_CONNECTIONS_PER_USER) {
+      const oldest = set.values().next().value;
+      if (oldest) {
+        oldest.close();
+        set.delete(oldest);
+      }
     }
     set.add(ws);
   }
@@ -40,6 +50,25 @@ class ConnectionManager {
       count += set.size;
     }
     return count;
+  }
+
+  /**
+   * 指定ユーザーがアクティブな WebSocket 接続を持つかを判定する
+   */
+  hasActiveConnection(userId: string): boolean {
+    const set = this.connections.get(userId);
+    if (!set) return false;
+    for (const ws of set) {
+      if (ws.readyState === ws.OPEN) return true;
+    }
+    return false;
+  }
+
+  /**
+   * ユーザー ID リストから WebSocket 接続がないユーザーをフィルタして返す
+   */
+  filterUsersWithoutConnection(userIds: string[]): string[] {
+    return userIds.filter((id) => !this.hasActiveConnection(id));
   }
 }
 

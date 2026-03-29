@@ -99,9 +99,14 @@ export function AdminNotificationEditModal({
   };
 
   const toggleUser = (user: TargetUser) => {
-    setSelectedUsers((prev) =>
-      prev.some((u) => u.id === user.id) ? prev.filter((u) => u.id !== user.id) : [...prev, user],
-    );
+    const isAlreadySelected = selectedUsers.some((u) => u.id === user.id);
+    if (isAlreadySelected) {
+      setSelectedUsers((prev) => prev.filter((u) => u.id !== user.id));
+    } else {
+      setSelectedUsers((prev) => [...prev, user]);
+      setUserSearch("");
+      setSearchResults([]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

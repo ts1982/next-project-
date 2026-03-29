@@ -6,6 +6,7 @@ import { logger } from "@/lib/utils/logger";
 import { RATE_LIMITS } from "@/lib/middleware/rate-limit";
 import { requirePermission } from "@/lib/auth/guards";
 import { withApiHandler } from "@/lib/middleware/api-handler";
+import { parsePagination } from "@/lib/constants/pagination";
 
 export const GET = withApiHandler(
   async (request, { clientIp }) => {
@@ -13,7 +14,7 @@ export const GET = withApiHandler(
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
-    const page = parseInt(searchParams.get("page") || "1");
+    const { page } = parsePagination(searchParams);
 
     const data = await getStoreList(search, page);
 

@@ -9,15 +9,14 @@ import { logger } from "@/lib/utils/logger";
 import { RATE_LIMITS } from "@/lib/middleware/rate-limit";
 import { requirePermission } from "@/lib/auth/guards";
 import { withApiHandler } from "@/lib/middleware/api-handler";
-import { PAGINATION } from "@/lib/constants/pagination";
+import { parsePagination } from "@/lib/constants/pagination";
 
 export const GET = withApiHandler(
   async (request) => {
     await requirePermission("notifications", "read");
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || String(PAGINATION.DEFAULT_LIMIT));
+    const { page, limit } = parsePagination(searchParams);
 
     logger.info("Fetching admin notifications", { page, limit });
 

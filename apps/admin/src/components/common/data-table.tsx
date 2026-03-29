@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils/index";
 import { TableSkeleton } from "./table-skeleton";
 import { Pagination } from "./pagination";
 
@@ -32,6 +33,10 @@ export interface Column<T> {
    * 列の幅クラス（Tailwind CSS）
    */
   className?: string;
+  /**
+   * 指定ブレークポイント未満で列を非表示にする
+   */
+  hideBelow?: "sm" | "md" | "lg";
 }
 
 /**
@@ -130,6 +135,12 @@ interface DataTableProps<T> {
  * />
  * ```
  */
+const hideBelowClass = (hideBelow?: "sm" | "md" | "lg") => {
+  if (!hideBelow) return "";
+  const map = { sm: "hidden sm:table-cell", md: "hidden md:table-cell", lg: "hidden lg:table-cell" };
+  return map[hideBelow];
+};
+
 export function DataTable<T>({
   data,
   columns,
@@ -149,6 +160,7 @@ export function DataTable<T>({
           columns={columns.length}
           headers={columns.map((col) => col.header)}
           columnWidths={columns.map((col) => col.className || "")}
+          hideClasses={columns.map((col) => hideBelowClass(col.hideBelow))}
           ariaLabel={ariaLabel}
         />
       </div>
@@ -162,7 +174,7 @@ export function DataTable<T>({
           <TableHeader>
             <TableRow>
               {columns.map((column) => (
-                <TableHead key={column.key} className={column.className}>
+                <TableHead key={column.key} className={cn(column.className, hideBelowClass(column.hideBelow))}>
                   {column.header}
                 </TableHead>
               ))}
@@ -205,7 +217,7 @@ export function DataTable<T>({
                     aria-label={isClickable ? `行を選択: ${rowKey}` : undefined}
                   >
                     {columns.map((column) => (
-                      <TableCell key={column.key} className={column.className}>
+                      <TableCell key={column.key} className={cn(column.className, hideBelowClass(column.hideBelow))}>
                         {column.render(item)}
                       </TableCell>
                     ))}

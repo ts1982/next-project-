@@ -7,6 +7,7 @@ import {
 import { prisma } from "@/lib/db/prisma";
 import { PAGINATION } from "@/lib/constants/pagination";
 import { convertToUTC } from "@/lib/utils/timezone";
+import type { NotificationType } from "@prisma/client";
 import type {
   AdminNotificationListResponse,
   CreateAdminNotificationResponse,
@@ -381,13 +382,21 @@ async function broadcastToUserApp(
   notification: { id: string; title: string; body: string; type: string },
 ): Promise<void> {
   const userAppUrl = process.env.USER_APP_URL || "http://localhost:3001";
-  const secret = process.env.INTERNAL_API_SECRET || "dev-secret";
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[broadcast] INTERNAL_API_SECRET is not configured, skipping broadcast");
+      return;
+    }
+    console.warn("[broadcast] INTERNAL_API_SECRET is not set, using dev fallback");
+  }
+  const effectiveSecret = secret || "dev-secret";
 
   const res = await fetch(`${userAppUrl}/api/internal/broadcast`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${secret}`,
+      Authorization: `Bearer ${effectiveSecret}`,
     },
     body: JSON.stringify({ userIds, notification }),
   });
@@ -398,7 +407,7 @@ async function broadcastToUserApp(
 }
 
 /**
- * 単一 AdminNotification を配信する（transaction）
+ * 単一 AdminNotification を配信する（transaction + FOR UPDATE）
  */
 async function deliverNotification(adminNotificationId: string): Promise<void> {
   let deliveredUserIds: string[] = [];
@@ -410,23 +419,34 @@ async function deliverNotification(adminNotificationId: string): Promise<void> {
   } | null = null;
 
   await prisma.$transaction(async (tx) => {
-    // トランザクション内で deliveredAt を確認し、二重配信を防ぐ
-    const notification = await tx.adminNotification.findUnique({
-      where: { id: adminNotificationId },
-      select: {
-        id: true,
-        title: true,
-        body: true,
-        type: true,
-        targetType: true,
-        deliveredAt: true,
-        targets: { select: { userId: true } },
-      },
-    });
+    // FOR UPDATE で行ロックを取得し、並行実行による二重配信を防ぐ
+    const rows = await tx.$queryRaw<
+      {
+        id: string;
+        title: string;
+        body: string;
+        type: NotificationType;
+        targetType: string;
+        deliveredAt: Date | null;
+      }[]
+    >`SELECT id, title, body, type, "targetType", "deliveredAt"
+      FROM admin_notifications
+      WHERE id = ${adminNotificationId}
+      FOR UPDATE`;
 
-    if (!notification || notification.targetType === undefined) return;
-    // 既に配信済みの場合はスキップ（cron 重複実行対策）
+    const notification = rows[0];
+    if (!notification) return;
+    // 既に配信済みの場合はスキップ（並行実行対策）
     if (notification.deliveredAt !== null) return;
+
+    // ターゲットユーザーを解決
+    let targets: { userId: string }[] = [];
+    if (notification.targetType === "SPECIFIC") {
+      targets = await tx.adminNotificationTarget.findMany({
+        where: { adminNotificationId },
+        select: { userId: true },
+      });
+    }
 
     let userIds: string[] = [];
 
@@ -434,7 +454,7 @@ async function deliverNotification(adminNotificationId: string): Promise<void> {
       const users = await tx.user.findMany({ select: { id: true } });
       userIds = users.map((u) => u.id);
     } else {
-      userIds = notification.targets.map((t) => t.userId);
+      userIds = targets.map((t) => t.userId);
     }
 
     if (userIds.length > 0) {

@@ -176,6 +176,7 @@ model Notification {
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   adminNotification AdminNotification? @relation(fields: [adminNotificationId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, adminNotificationId])
   @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
 }

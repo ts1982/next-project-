@@ -45,7 +45,7 @@ app.prepare().then(() => {
             notification,
           });
 
-          // Web Push 送信（非同期・失敗しても 200 を返す）
+          // Push 通知を全対象ユーザーに送信（WS 接続中でもブラウザ通知を表示）
           sendWebPush(userIds, notification).catch((err) => {
             console.error("[web-push] Broadcast error:", err);
           });
@@ -84,7 +84,7 @@ app.prepare().then(() => {
  */
 async function sendWebPush(
   userIds: string[],
-  notification: { title: string; body: string; type: string },
+  notification: { id?: string; title: string; body: string; type: string },
 ): Promise<void> {
   const subscriptions = await prisma.pushSubscription.findMany({
     where: { userId: { in: userIds } },
@@ -97,6 +97,7 @@ async function sendWebPush(
     title: notification.title,
     body: notification.body,
     type: notification.type,
+    id: notification.id,
     url: "/notifications",
   });
 

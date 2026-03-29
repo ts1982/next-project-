@@ -49,16 +49,19 @@ export const AdminTable = ({ admins, timezone }: AdminTableProps) => {
       header: "ロール",
       render: (admin) => <RoleBadge roleName={admin.role.name} />,
       className: "w-32",
+      hideBelow: "md",
     },
     {
       key: "createdAt",
       header: "登録日",
       render: (admin) => formatDateTime(admin.createdAt, timezone),
+      hideBelow: "lg",
     },
     {
       key: "updatedAt",
       header: "更新日",
       render: (admin) => formatDateTime(admin.updatedAt, timezone),
+      hideBelow: "lg",
     },
   ];
 

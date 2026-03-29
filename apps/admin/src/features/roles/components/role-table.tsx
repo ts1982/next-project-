@@ -40,6 +40,7 @@ export function RoleTable({ roles, permissions }: RoleTableProps) {
       key: "description",
       header: "説明",
       render: (role) => <span className="text-muted-foreground">{role.description || "—"}</span>,
+      hideBelow: "md",
     },
     {
       key: "permissions",
@@ -49,6 +50,7 @@ export function RoleTable({ roles, permissions }: RoleTableProps) {
     {
       key: "summary",
       header: "権限概要",
+      hideBelow: "md",
       render: (role) => {
         const summary = role.permissions
           .slice(0, 3)

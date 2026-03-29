@@ -42,11 +42,13 @@ export function AdminNotificationTable({
       key: "type",
       header: "種別",
       render: (n) => <Badge variant={TYPE_VARIANTS[n.type]}>{TYPE_LABELS[n.type]}</Badge>,
+      hideBelow: "md",
     },
     {
       key: "targetType",
       header: "対象",
       render: (n) => (n.targetType === "ALL" ? "全ユーザー" : `特定(${n.targets.length}名)`),
+      hideBelow: "md",
     },
     {
       key: "status",
@@ -66,11 +68,13 @@ export function AdminNotificationTable({
           : n.scheduledAt
             ? formatInTimezone(n.scheduledAt, timezone, "yyyy/MM/dd HH:mm")
             : "-",
+      hideBelow: "lg",
     },
     {
       key: "createdAt",
       header: "作成日時",
       render: (n) => formatInTimezone(n.createdAt, timezone, "yyyy/MM/dd HH:mm"),
+      hideBelow: "lg",
     },
   ];
 

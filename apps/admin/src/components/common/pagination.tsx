@@ -125,13 +125,13 @@ export const Pagination = ({
   }
 
   return (
-    <nav className="flex items-center justify-between" aria-label="ページネーション">
+    <nav className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" aria-label="ページネーション">
       {showInfo && (
-        <p className="text-sm text-muted-foreground" aria-live="polite">
+        <p className="text-sm text-muted-foreground text-center sm:text-left" aria-live="polite">
           {totalItems}件中 {start}-{end}件を表示
         </p>
       )}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center sm:justify-end gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -140,9 +140,9 @@ export const Pagination = ({
           aria-label="前のページへ"
         >
           <ChevronLeft className="h-4 w-4" />
-          前へ
+          <span className="hidden sm:inline">前へ</span>
         </Button>
-        <div className="flex items-center gap-1" role="group" aria-label="ページ番号">
+        <div className="hidden sm:flex items-center gap-1" role="group" aria-label="ページ番号">
           {pageNumbers.map((pageNum, index) =>
             typeof pageNum === "number" ? (
               <Button
@@ -175,7 +175,7 @@ export const Pagination = ({
           disabled={currentPage === totalPages || isLoading}
           aria-label="次のページへ"
         >
-          次へ
+          <span className="hidden sm:inline">次へ</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

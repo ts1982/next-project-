@@ -7,6 +7,7 @@ import { logger } from "@/lib/utils/logger";
 import { RATE_LIMITS } from "@/lib/middleware/rate-limit";
 import { requirePermission } from "@/lib/auth/guards";
 import { withApiHandler } from "@/lib/middleware/api-handler";
+import { parsePagination } from "@/lib/constants/pagination";
 
 export const GET = withApiHandler(
   async (request, { clientIp }) => {
@@ -14,8 +15,7 @@ export const GET = withApiHandler(
 
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const { page, limit } = parsePagination(searchParams);
     const skip = (page - 1) * limit;
 
     logger.info("Fetching admins", { search, page, limit, clientIp });

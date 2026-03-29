@@ -31,11 +31,13 @@ export function StoreTable({ stores, timezone }: StoreTableProps) {
       key: "address",
       header: "住所",
       render: (store) => store.address,
+      hideBelow: "md",
     },
     {
       key: "phone",
       header: "電話番号",
       render: (store) => store.phone || "-",
+      hideBelow: "lg",
     },
     {
       key: "publicationStatus",
@@ -52,6 +54,7 @@ export function StoreTable({ stores, timezone }: StoreTableProps) {
       key: "createdAt",
       header: "登録日",
       render: (store) => formatDate(store.createdAt, timezone),
+      hideBelow: "lg",
     },
   ];
 

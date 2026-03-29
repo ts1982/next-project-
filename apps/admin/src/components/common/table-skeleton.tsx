@@ -22,6 +22,10 @@ interface TableSkeletonProps {
    */
   columnWidths?: string[];
   /**
+   * 各列のレスポンシブ非表示クラス
+   */
+  hideClasses?: string[];
+  /**
    * テーブルヘッダー（オプション）
    */
   headers?: string[];
@@ -47,6 +51,7 @@ export const TableSkeleton = ({
   rows = 10,
   columns,
   columnWidths = [],
+  hideClasses = [],
   headers = [],
   ariaLabel = "データ読み込み中",
 }: TableSkeletonProps) => {
@@ -58,7 +63,7 @@ export const TableSkeleton = ({
             <TableHeader>
               <TableRow>
                 {headers.map((header, index) => (
-                  <TableHead key={index} className={columnWidths[index]}>
+                  <TableHead key={index} className={`${columnWidths[index] || ""} ${hideClasses[index] || ""}`}>
                     {header}
                   </TableHead>
                 ))}
@@ -69,7 +74,7 @@ export const TableSkeleton = ({
             {Array.from({ length: rows }).map((_, rowIndex) => (
               <TableRow key={rowIndex}>
                 {Array.from({ length: columns }).map((_, colIndex) => (
-                  <TableCell key={colIndex}>
+                  <TableCell key={colIndex} className={hideClasses[colIndex] || ""}>
                     <div
                       className={`h-4 animate-pulse rounded bg-muted ${
                         columnWidths[colIndex] || "w-32"

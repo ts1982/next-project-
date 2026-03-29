@@ -7,14 +7,14 @@ const sw = self;
 sw.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  /** @type {{ title: string; body: string; type?: string; url?: string }} */
+  /** @type {{ title: string; body: string; type?: string; url?: string; id?: string }} */
   const data = event.data.json();
 
   const options = {
     body: data.body,
     icon: "/icon-192x192.png",
     badge: "/icon-192x192.png",
-    tag: data.tag || "notification-" + Date.now(),
+    tag: data.id ? "notification-" + data.id : "notification-" + Date.now(),
     data: { url: data.url || "/notifications" },
   };
 

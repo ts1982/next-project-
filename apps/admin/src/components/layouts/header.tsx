@@ -38,7 +38,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-      <div className="flex h-16 items-center justify-between px-6">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -57,14 +57,14 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="hidden sm:flex h-9 w-9 rounded-lg hover:bg-accent"
+            className="flex h-9 w-9 rounded-lg hover:bg-accent"
           >
             <Search className="h-4 w-4 text-muted-foreground" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="hidden sm:flex h-9 w-9 rounded-lg hover:bg-accent relative"
+            className="flex h-9 w-9 rounded-lg hover:bg-accent relative"
           >
             <Bell className="h-4 w-4 text-muted-foreground" />
           </Button>

@@ -49,16 +49,19 @@ export const UserTable = ({ users, timezone }: UserTableProps) => {
       header: "ロール",
       render: (user) => <RoleBadge roleName={user.role.name} />,
       className: "w-32",
+      hideBelow: "md",
     },
     {
       key: "createdAt",
       header: "登録日",
       render: (user) => formatDateTime(user.createdAt, timezone),
+      hideBelow: "lg",
     },
     {
       key: "updatedAt",
       header: "更新日",
       render: (user) => formatDateTime(user.updatedAt, timezone),
+      hideBelow: "lg",
     },
   ];
 
