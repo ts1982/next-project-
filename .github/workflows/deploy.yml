@@ -245,12 +245,28 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Register migration task definition with new image
+        id: migrate-taskdef
+        run: |
+          NEW_IMAGE="${{ steps.ecr-login.outputs.registry }}/${PROJECT_NAME}/admin:${GITHUB_SHA}"
+          echo "Using image: $NEW_IMAGE"
+          TASK_DEF=$(aws ecs describe-task-definition --task-definition ${PROJECT_NAME}-admin --query taskDefinition)
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMG "$NEW_IMAGE" \
+            '.containerDefinitions[0].image = $IMG | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+          REVISION=$(aws ecs register-task-definition --cli-input-json "$NEW_TASK_DEF" --query 'taskDefinition.taskDefinitionArn' --output text)
+          echo "task_def_arn=$REVISION" >> "$GITHUB_OUTPUT"
+          echo "Registered migration task definition: $REVISION"
+
       - name: Run Prisma migration via ECS RunTask
         run: |
-          echo "Running prisma migrate deploy via ECS RunTask..."
+          echo "Running prisma migrate deploy..."
           TASK_ARN=$(aws ecs run-task \
             --cluster ${PROJECT_NAME}-cluster \
-            --task-definition ${PROJECT_NAME}-admin \
+            --task-definition ${{ steps.migrate-taskdef.outputs.task_def_arn }} \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[$(aws cloudformation describe-stacks --stack-name ${PROJECT_NAME}-base --query 'Stacks[0].Outputs[?OutputKey==`PublicSubnetId`].OutputValue' --output text)],securityGroups=[$(aws cloudformation describe-stacks --stack-name ${PROJECT_NAME}-base --query 'Stacks[0].Outputs[?OutputKey==`FargateSecurityGroupId`].OutputValue' --output text)],assignPublicIp=ENABLED}" \
             --overrides '{
@@ -265,6 +281,15 @@ jobs:
           EXIT_CODE=$(aws ecs describe-tasks --cluster ${PROJECT_NAME}-cluster --tasks "$TASK_ARN" --query 'tasks[0].containers[0].exitCode' --output text)
           if [ "$EXIT_CODE" != "0" ]; then
             echo "Migration failed with exit code $EXIT_CODE"
+            # Fetch container logs from CloudWatch
+            TASK_ID=$(echo "$TASK_ARN" | awk -F'/' '{print $NF}')
+            LOG_STREAM="admin/admin/${TASK_ID}"
+            echo "--- Container Logs (${LOG_STREAM}) ---"
+            aws logs get-log-events \
+              --log-group-name "/ecs/${PROJECT_NAME}/admin" \
+              --log-stream-name "$LOG_STREAM" \
+              --query 'events[].message' --output text 2>/dev/null || echo "(logs not available)"
+            echo "--- End Logs ---"
             exit 1
           fi
           echo "Migration completed successfully"
