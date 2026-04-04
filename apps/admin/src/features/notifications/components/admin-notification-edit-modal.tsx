@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { CheckIcon, SearchIcon, UsersIcon, UserIcon, XIcon } from "lucide-react";
 import {
@@ -63,6 +63,7 @@ export function AdminNotificationEditModal({
   const [selectedUsers, setSelectedUsers] = useState<TargetUser[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // 通知データが変わったときにフォームを初期化
   useEffect(() => {
@@ -106,6 +107,7 @@ export function AdminNotificationEditModal({
       setSelectedUsers((prev) => [...prev, user]);
       setUserSearch("");
       setSearchResults([]);
+      setTimeout(() => searchInputRef.current?.focus(), 0);
     }
   };
 
@@ -241,11 +243,25 @@ export function AdminNotificationEditModal({
               <div className="relative">
                 <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
+                  ref={searchInputRef}
                   value={userSearch}
                   onChange={(e) => handleUserSearch(e.target.value)}
                   placeholder="名前またはメールで検索"
-                  className="pl-9"
+                  className="pl-9 pr-9"
                 />
+                {userSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUserSearch("");
+                      setSearchResults([]);
+                      searchInputRef.current?.focus();
+                    }}
+                    className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                )}
               </div>
               {searchResults.length > 0 && (
                 <div className="mt-2 border rounded-lg max-h-36 overflow-y-auto divide-y">
