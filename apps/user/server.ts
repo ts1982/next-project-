@@ -76,6 +76,30 @@ app.prepare().then(() => {
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> WS Ready on ws://${hostname}:${port}/ws`);
   });
+
+  // Graceful shutdown: ECS が SIGTERM を送信した後、新規接続を停止し既存接続を drain する
+  process.on("SIGTERM", () => {
+    console.log("[shutdown] SIGTERM received, closing gracefully...");
+    server.close(async () => {
+      console.log("[shutdown] HTTP server closed");
+      try {
+        await prisma.$disconnect();
+        console.log("[shutdown] Prisma disconnected");
+      } catch (err) {
+        console.error("[shutdown] Prisma disconnect error:", err);
+      }
+      process.exit(0);
+    });
+
+    // 全 WebSocket 接続を 1000 (Normal Closure) で閉じる
+    connectionManager.closeAll();
+
+    // server.close() が完了しない場合のフォールバック
+    setTimeout(() => {
+      console.warn("[shutdown] Forceful exit after timeout");
+      process.exit(1);
+    }, 25_000);
+  });
 });
 
 /**

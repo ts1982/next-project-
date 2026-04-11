@@ -58,6 +58,9 @@ Resources:
       UnhealthyThresholdCount: 3
       Matcher:
         HttpCode: "200"
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
 
   UserTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -76,6 +79,8 @@ Resources:
       Matcher:
         HttpCode: "200"
       TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
         - Key: stickiness.enabled
           Value: "true"
         - Key: stickiness.type
@@ -212,7 +217,7 @@ Resources:
           TargetGroupArn: !Ref AdminTargetGroup
       HealthCheckGracePeriodSeconds: 60
       DeploymentConfiguration:
-        MinimumHealthyPercent: 0
+        MinimumHealthyPercent: 100
         MaximumPercent: 200
 
   UserService:
@@ -243,7 +248,7 @@ Resources:
         - RegistryArn: !GetAtt UserServiceDiscovery.Arn
       HealthCheckGracePeriodSeconds: 60
       DeploymentConfiguration:
-        MinimumHealthyPercent: 0
+        MinimumHealthyPercent: 100
         MaximumPercent: 200
 
   # ----------------------------------------------------------

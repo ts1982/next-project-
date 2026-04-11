@@ -70,6 +70,15 @@ class ConnectionManager {
   filterUsersWithoutConnection(userIds: string[]): string[] {
     return userIds.filter((id) => !this.hasActiveConnection(id));
   }
+
+  closeAll(): void {
+    for (const set of this.connections.values()) {
+      for (const ws of set) {
+        ws.close(1000, "Server shutting down");
+      }
+    }
+    this.connections.clear();
+  }
 }
 
 // globalThis パターンで HMR 時の参照切れを防止
