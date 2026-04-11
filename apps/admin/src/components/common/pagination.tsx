@@ -30,7 +30,7 @@ interface PaginationProps {
   isLoading?: boolean;
   /**
    * 最大表示ページ番号数（例: 5 なら [1][2][3][4][5] のように表示）
-   * @default undefined（全ページを表示）
+   * @default 5
    */
   maxPageButtons?: number;
   /**
@@ -67,7 +67,7 @@ export const Pagination = ({
   itemsPerPage,
   onPageChange,
   isLoading = false,
-  maxPageButtons,
+  maxPageButtons = 5,
   showInfo = true,
 }: PaginationProps) => {
   const start = (currentPage - 1) * itemsPerPage + 1;
