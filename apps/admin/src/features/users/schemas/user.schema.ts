@@ -1,10 +1,11 @@
 import { z } from "zod";
+import {
+  PASSWORD_REGEX,
+  updateTimezoneSchema,
+  type UpdateTimezoneInput,
+} from "@/lib/validations/common.schema";
 
-// パスワードの正規表現: 8文字以上、英字と数字を含む
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
-
-// ロールID のバリデーション（DB上のRole.id）
-const roleIdSchema = z.string().min(1, "ロールを選択してください");
+export { updateTimezoneSchema, type UpdateTimezoneInput };
 
 // ユーザー作成用のzodスキーマ
 export const createUserSchema = z.object({
@@ -24,7 +25,6 @@ export const createUserSchema = z.object({
     .min(1, { message: "名前を入力してください" })
     .max(100, { message: "名前は100文字以内で入力してください" })
     .trim(),
-  roleId: roleIdSchema,
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -51,7 +51,6 @@ export const updateUserSchema = z
         message: "パスワードは英字と数字を含む必要があります",
       })
       .optional(),
-    roleId: z.string().min(1, "ロールを選択してください").optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "少なくとも1項目は入力してください",
@@ -59,23 +58,3 @@ export const updateUserSchema = z
   });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-
-// タイムゾーン更新用のスキーマ
-export const updateTimezoneSchema = z.object({
-  timezone: z
-    .string({ message: "タイムゾーンは必須です" })
-    .min(1, { message: "タイムゾーンを選択してください" })
-    .refine(
-      (tz) => {
-        try {
-          return Intl.supportedValuesOf("timeZone").includes(tz);
-        } catch {
-          // Intl.supportedValuesOf が使えない環境用のフォールバック
-          return /^[A-Za-z]+\/[A-Za-z_]+$/.test(tz);
-        }
-      },
-      { message: "不正なタイムゾーンです" },
-    ),
-});
-
-export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;

@@ -3,7 +3,6 @@
 import { useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import { createUserSchema } from "@/features/users/schemas/user.schema";
-import { RoleSelect } from "@/features/users/components/role-select";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/common/form-field";
 import { ZodError } from "zod";
@@ -20,7 +19,6 @@ export function UserCreateForm() {
     name: "",
     email: "",
     password: "",
-    roleId: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
@@ -61,7 +59,7 @@ export function UserCreateForm() {
 
       // 成功
       setSuccessMessage("ユーザーを作成しました");
-      setFormData({ name: "", email: "", password: "", roleId: "" });
+      setFormData({ name: "", email: "", password: "" });
 
       // 5秒後にメッセージを消去
       setTimeout(() => {
@@ -144,15 +142,6 @@ export function UserCreateForm() {
             id={passwordId}
           />
           <p className="mt-1 text-xs text-gray-500">8文字以上、英字と数字を含む必要があります</p>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">ロール</label>
-          <RoleSelect
-            value={formData.roleId}
-            onChange={(roleId) => setFormData({ ...formData, roleId })}
-            error={errors.roleId}
-          />
         </div>
 
         {/* ボタン */}

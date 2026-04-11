@@ -48,8 +48,8 @@ export function useWebSocket({ onNotification }: UseWebSocketOptions = {}) {
           if (data.type === "NEW_NOTIFICATION" && data.notification) {
             onNotificationRef.current?.(data.notification);
           }
-        } catch {
-          // ignore parse errors
+        } catch (err) {
+          console.error("[ws] Failed to parse message:", err);
         }
       };
 

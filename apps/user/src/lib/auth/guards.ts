@@ -7,6 +7,13 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  constructor(message = "権限がありません") {
+    super(message);
+    this.name = "ForbiddenError";
+  }
+}
+
 export interface AuthUser {
   id: string;
   email?: string | null;

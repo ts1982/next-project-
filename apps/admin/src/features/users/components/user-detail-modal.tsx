@@ -15,8 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import { RoleBadge } from "./role-badge";
-import { RoleSelect } from "./role-select";
 import { NotificationListModal } from "@/features/notifications/components/notification-list-modal";
 import { updateUserSchema, type UpdateUserInput } from "../schemas/user.schema";
 import type { User } from "../types/user.types";
@@ -45,7 +43,6 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
         name: user.name,
         email: user.email,
         password: "",
-        roleId: user.roleId,
       });
     }
   }, [user]);
@@ -61,7 +58,6 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
     if (formData.name) updateData.name = formData.name;
     if (formData.email) updateData.email = formData.email;
     if (formData.password) updateData.password = formData.password;
-    if (formData.roleId && formData.roleId !== user.roleId) updateData.roleId = formData.roleId;
 
     const result = updateUserSchema.safeParse(updateData);
     if (!result.success) {
@@ -174,13 +170,6 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
                   <p className="text-base">{user.email}</p>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">ロール</label>
-                  <div className="mt-1">
-                    <RoleBadge roleName={user.role.name} />
-                  </div>
-                </div>
-
                 <div className="pt-2 border-t">
                   <p className="text-xs text-muted-foreground">
                     作成日: {formatDateTime(user.createdAt, timezone)}
@@ -260,17 +249,6 @@ export function UserDetailModal({ user, isOpen, onClose, timezone }: UserDetailM
                   {errors.password && (
                     <p className="text-sm text-red-500 mt-1">{errors.password}</p>
                   )}
-                </div>
-
-                <div>
-                  <label htmlFor="edit-role" className="text-sm font-medium">
-                    ロール
-                  </label>
-                  <RoleSelect
-                    id="edit-role"
-                    value={formData.roleId || user.roleId}
-                    onChange={(roleId) => setFormData({ ...formData, roleId })}
-                  />
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">

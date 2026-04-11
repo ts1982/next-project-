@@ -5,10 +5,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname, "../../"),
   },
-  typescript: {
-    // TODO: 型不整合を修正後に削除する
-    ignoreBuildErrors: true,
-  },
   transpilePackages: ["@repo/database"],
 };
 

@@ -1,7 +1,6 @@
 import { decode } from "next-auth/jwt";
 import type { IncomingMessage } from "http";
-
-const COOKIE_NAME = "next-auth.user.session-token";
+import { SESSION_COOKIE_NAME } from "@/lib/constants/auth";
 
 function parseCookies(req: IncomingMessage): Record<string, string> {
   const header = req.headers.cookie || "";
@@ -17,7 +16,7 @@ function parseCookies(req: IncomingMessage): Record<string, string> {
 
 export async function authenticateWs(req: IncomingMessage): Promise<string | null> {
   const cookies = parseCookies(req);
-  const token = cookies[COOKIE_NAME];
+  const token = cookies[SESSION_COOKIE_NAME];
   if (!token) return null;
 
   const secret = process.env.AUTH_SECRET;
@@ -27,7 +26,7 @@ export async function authenticateWs(req: IncomingMessage): Promise<string | nul
   }
 
   try {
-    const decoded = await decode({ token, secret, salt: COOKIE_NAME });
+    const decoded = await decode({ token, secret, salt: SESSION_COOKIE_NAME });
     return decoded?.sub ?? null;
   } catch {
     return null;

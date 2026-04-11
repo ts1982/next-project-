@@ -7,6 +7,7 @@ import {
 import { prisma } from "@/lib/db/prisma";
 import { PAGINATION } from "@/lib/constants/pagination";
 import { convertToUTC } from "@/lib/utils/timezone";
+import { logger } from "@/lib/utils/logger";
 import type { NotificationType } from "@prisma/client";
 import type {
   AdminNotificationListResponse,
@@ -149,8 +150,7 @@ export async function createAdminNotification(
     } catch (deleteError) {
       // すでに削除済みの場合は無視し、それ以外はログだけ残す
       if (!(deleteError instanceof ResourceNotFoundException)) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to rollback scheduler creation", deleteError);
+        logger.error("Failed to rollback scheduler creation", { error: deleteError });
       }
     }
 
@@ -227,8 +227,7 @@ export async function updateAdminNotification(
     try {
       await cancelScheduler(oldSchedulerName);
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to cancel old scheduler after DB update", err);
+      logger.error("Failed to cancel old scheduler after DB update", { error: err });
     }
   }
 
@@ -246,8 +245,7 @@ export async function updateAdminNotification(
         await cancelScheduler(newSchedulerName);
       } catch (deleteError) {
         if (!(deleteError instanceof ResourceNotFoundException)) {
-          // eslint-disable-next-line no-console
-          console.error("Failed to rollback scheduler creation", deleteError);
+          logger.error("Failed to rollback scheduler creation", { error: deleteError });
         }
       }
       throw error;
@@ -321,12 +319,12 @@ async function registerScheduler(notificationId: string, scheduledAt: Date): Pro
       const delayMs = Math.max(0, scheduledAt.getTime() - Date.now());
       // setTimeout の最大値 (約24.8日) を超えないようにクランプ
       const safeDelay = Math.min(delayMs, 2_147_483_647);
-      console.warn(
+      logger.warn(
         `[scheduler] ローカル開発環境: ${safeDelay}ms 後に配信を実行します (notificationId=${notificationId})`,
       );
       setTimeout(() => {
         deliverNotification(notificationId).catch((err) => {
-          console.error("[scheduler] ローカル配信エラー:", err);
+          logger.error("[scheduler] ローカル配信エラー", { error: err });
         });
       }, safeDelay);
       return `local-mock-${notificationId}`;
@@ -353,7 +351,7 @@ async function registerScheduler(notificationId: string, scheduledAt: Date): Pro
     }),
   );
 
-  console.log(`[scheduler] Registered: ${scheduleName} at ${atExpression}`);
+  logger.info(`[scheduler] Registered: ${scheduleName} at ${atExpression}`);
   return scheduleName;
 }
 
@@ -364,7 +362,7 @@ async function registerScheduler(notificationId: string, scheduledAt: Date): Pro
 async function cancelScheduler(schedulerName: string): Promise<void> {
   try {
     await schedulerClient.send(new DeleteScheduleCommand({ Name: schedulerName }));
-    console.log(`[scheduler] Cancelled: ${schedulerName}`);
+    logger.info(`[scheduler] Cancelled: ${schedulerName}`);
   } catch (err) {
     if (err instanceof ResourceNotFoundException) {
       // 既に配信・自動削除済みは正常
@@ -385,10 +383,10 @@ async function broadcastToUserApp(
   const secret = process.env.INTERNAL_API_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
-      console.error("[broadcast] INTERNAL_API_SECRET is not configured, skipping broadcast");
+      logger.error("[broadcast] INTERNAL_API_SECRET is not configured, skipping broadcast");
       return;
     }
-    console.warn("[broadcast] INTERNAL_API_SECRET is not set, using dev fallback");
+    logger.warn("[broadcast] INTERNAL_API_SECRET is not set, using dev fallback");
   }
   const effectiveSecret = secret || "dev-secret";
 
@@ -402,7 +400,7 @@ async function broadcastToUserApp(
   });
 
   if (!res.ok) {
-    console.error(`[broadcast] Failed: ${res.status} ${res.statusText}`);
+    logger.error(`[broadcast] Failed: ${res.status} ${res.statusText}`);
   }
 }
 
@@ -487,7 +485,7 @@ async function deliverNotification(adminNotificationId: string): Promise<void> {
   // トランザクション完了後にリアルタイム通知（失敗しても配信は成功扱い）
   if (deliveredUserIds.length > 0 && notificationSnapshot !== null) {
     broadcastToUserApp(deliveredUserIds, notificationSnapshot).catch((err) => {
-      console.error("[broadcast] Error:", err);
+      logger.error("[broadcast] Error", { error: err });
     });
   }
 }

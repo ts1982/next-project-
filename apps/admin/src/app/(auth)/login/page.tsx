@@ -37,7 +37,6 @@ function LoginForm() {
         setError("認証に失敗しました。メールアドレスとパスワードを確認してください。");
       } else {
         router.push(callbackUrl);
-        router.refresh();
       }
     } catch (error) {
       setError("ログイン中にエラーが発生しました。");

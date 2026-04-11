@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
-import { UnauthorizedError } from "@/lib/auth/guards";
+import { UnauthorizedError, ForbiddenError } from "@/lib/auth/guards";
 import { errorResponse } from "@/lib/types/api.types";
 
 export interface ApiHandlerContext {
@@ -23,6 +23,12 @@ export function withApiHandler(handler: ApiHandler) {
       if (error instanceof UnauthorizedError) {
         return NextResponse.json(errorResponse("認証が必要です", undefined, "UNAUTHORIZED"), {
           status: 401,
+        });
+      }
+
+      if (error instanceof ForbiddenError) {
+        return NextResponse.json(errorResponse("権限がありません", undefined, "FORBIDDEN"), {
+          status: 403,
         });
       }
 

@@ -79,7 +79,7 @@ model Admin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  role               Role                @relation(fields: [roleId], references: [id])
+  role               Role                @relation(fields: [roleId], references: [id], onDelete: Restrict)
   adminNotifications AdminNotification[]
 
   @@map("admins")
@@ -204,7 +204,7 @@ model PushSubscription {
 /// 監査ログ（権限・ロール変更等のセキュリティ操作を記録）
 model AuditLog {
   id        String   @id @default(cuid())
-  adminId   String   @db.VarChar(50)
+  adminId   String
   action    String   @db.VarChar(50)
   target    String   @db.VarChar(200)
   details   Json?

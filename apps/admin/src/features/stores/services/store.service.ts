@@ -26,7 +26,7 @@ function transformStoreToResponse(store: PrismaStore): Store {
 }
 
 export async function getStoreList(search: string = "", page: number = 1) {
-  const offset = (page - 1) * PAGINATION.ITEMS_PER_PAGE;
+  const offset = (page - 1) * PAGINATION.DEFAULT_LIMIT;
 
   const where = search
     ? {
@@ -41,7 +41,7 @@ export async function getStoreList(search: string = "", page: number = 1) {
     prisma.store.findMany({
       where,
       orderBy: { id: "desc" },
-      take: PAGINATION.ITEMS_PER_PAGE,
+      take: PAGINATION.DEFAULT_LIMIT,
       skip: offset,
     }),
     prisma.store.count({ where }),
@@ -52,8 +52,8 @@ export async function getStoreList(search: string = "", page: number = 1) {
     pagination: {
       total,
       page,
-      pageSize: PAGINATION.ITEMS_PER_PAGE,
-      totalPages: Math.ceil(total / PAGINATION.ITEMS_PER_PAGE),
+      pageSize: PAGINATION.DEFAULT_LIMIT,
+      totalPages: Math.ceil(total / PAGINATION.DEFAULT_LIMIT),
     },
   };
 }

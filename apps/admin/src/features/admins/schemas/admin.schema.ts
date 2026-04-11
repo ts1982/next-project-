@@ -1,10 +1,12 @@
 import { z } from "zod";
+import {
+  PASSWORD_REGEX,
+  roleIdSchema,
+  updateTimezoneSchema,
+  type UpdateTimezoneInput,
+} from "@/lib/validations/common.schema";
 
-// パスワードの正規表現: 8文字以上、英字と数字を含む
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
-
-// ロールID のバリデーション（DB上のRole.id）
-const roleIdSchema = z.string().min(1, "ロールを選択してください");
+export { updateTimezoneSchema, type UpdateTimezoneInput };
 
 // 管理者作成用のzodスキーマ
 export const createAdminSchema = z.object({
@@ -59,23 +61,3 @@ export const updateAdminSchema = z
   });
 
 export type UpdateAdminInput = z.infer<typeof updateAdminSchema>;
-
-// タイムゾーン更新用のスキーマ
-export const updateTimezoneSchema = z.object({
-  timezone: z
-    .string({ message: "タイムゾーンは必須です" })
-    .min(1, { message: "タイムゾーンを選択してください" })
-    .refine(
-      (tz) => {
-        try {
-          return Intl.supportedValuesOf("timeZone").includes(tz);
-        } catch {
-          // Intl.supportedValuesOf が使えない環境用のフォールバック
-          return /^[A-Za-z]+\/[A-Za-z_]+$/.test(tz);
-        }
-      },
-      { message: "不正なタイムゾーンです" },
-    ),
-});
-
-export type UpdateTimezoneInput = z.infer<typeof updateTimezoneSchema>;

@@ -19,10 +19,7 @@ const USER_SELECT = {
   id: true,
   email: true,
   name: true,
-  roleId: true,
-  role: { select: { id: true, name: true } },
   timezone: true,
-  emailVerified: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -75,7 +72,6 @@ export const createUser = async (input: CreateUserInput): Promise<CreateUserResp
       email: validated.email,
       name: validated.name,
       password: hashedPassword,
-      roleId: validated.roleId,
       timezone: env.DEFAULT_TIMEZONE,
     },
     select: USER_SELECT,
@@ -114,7 +110,6 @@ export const updateUser = async (
     name: string;
     email: string;
     password: string;
-    roleId: string;
     timezone: string;
   }> = {};
   if (validated.name) data.name = validated.name;
@@ -122,7 +117,6 @@ export const updateUser = async (
   if (validated.password) {
     data.password = await bcrypt.hash(validated.password, 10);
   }
-  if (validated.roleId) data.roleId = validated.roleId;
   if (validatedTimezone !== undefined) data.timezone = validatedTimezone;
 
   const user = await prisma.user.update({

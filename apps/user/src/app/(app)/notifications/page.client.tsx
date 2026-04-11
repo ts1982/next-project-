@@ -29,12 +29,14 @@ interface NotificationsClientPageProps {
     hasMore: boolean;
   };
   initialUnreadCount: number;
+  userTimezone?: string | null;
 }
 
 export function NotificationsClientPage({
   initialNotifications,
   initialPagination,
   initialUnreadCount,
+  userTimezone,
 }: NotificationsClientPageProps) {
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [pagination, setPagination] = useState(initialPagination);
@@ -161,7 +163,7 @@ export function NotificationsClientPage({
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-      timeZone: "Asia/Tokyo",
+      timeZone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
   };
 

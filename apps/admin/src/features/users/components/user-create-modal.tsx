@@ -14,14 +14,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createUserSchema } from "../schemas/user.schema";
-import { RoleSelect } from "./role-select";
 import { ZodError } from "zod";
 
 type FormErrors = {
   name?: string;
   email?: string;
   password?: string;
-  roleId?: string;
   general?: string;
 };
 
@@ -41,7 +39,6 @@ export function UserCreateModal({ isOpen, onClose }: UserCreateModalProps) {
     name: "",
     email: "",
     password: "",
-    roleId: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +87,7 @@ export function UserCreateModal({ isOpen, onClose }: UserCreateModalProps) {
       // 成功
       router.refresh();
       onClose();
-      setFormData({ name: "", email: "", password: "", roleId: "" });
+      setFormData({ name: "", email: "", password: "" });
     } catch (error) {
       if (error instanceof ZodError) {
         const fieldErrors: FormErrors = {};
@@ -179,14 +176,6 @@ export function UserCreateModal({ isOpen, onClose }: UserCreateModalProps) {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">ロール</label>
-              <RoleSelect
-                value={formData.roleId}
-                onChange={(roleId) => setFormData({ ...formData, roleId })}
-                error={errors.roleId}
-              />
-            </div>
           </div>
 
           <DialogFooter className="mt-6">

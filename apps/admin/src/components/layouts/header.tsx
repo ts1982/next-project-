@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Menu, Search, Bell, User, LogOut } from "lucide-react";
+import { Menu, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -54,20 +54,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         </div>
 
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="flex h-9 w-9 rounded-lg hover:bg-accent"
-          >
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="flex h-9 w-9 rounded-lg hover:bg-accent relative"
-          >
-            <Bell className="h-4 w-4 text-muted-foreground" />
-          </Button>
           <div className="mx-2 hidden sm:block h-6 w-px bg-border" />
           {mounted ? (
             <Sheet>

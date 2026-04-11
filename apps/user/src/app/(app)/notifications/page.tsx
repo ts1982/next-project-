@@ -19,6 +19,7 @@ export default async function NotificationsPage() {
       initialNotifications={data.notifications}
       initialPagination={data.pagination}
       initialUnreadCount={unreadCount}
+      userTimezone={session.user.timezone}
     />
   );
 }

@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "./auth.config";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { SESSION_COOKIE_NAME } from "@/lib/constants/auth";
 
 const loginSchema = z.object({
   email: z.string().email("有効なメールアドレスを入力してください"),
@@ -13,7 +14,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   cookies: {
     sessionToken: {
-      name: "next-auth.user.session-token",
+      name: SESSION_COOKIE_NAME,
       options: {
         httpOnly: true,
         sameSite: "lax",

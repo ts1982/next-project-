@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import type { Prisma } from "@repo/database";
 
 /**
  * 監査ログを記録する
@@ -19,7 +20,7 @@ export async function audit(
       adminId,
       action,
       target,
-      details: details ?? undefined,
+      details: details as Prisma.InputJsonValue | undefined,
     },
   });
 }
