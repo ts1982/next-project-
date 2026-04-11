@@ -135,8 +135,10 @@ setup: install db-up prisma-migrate seed
 # ============================================================
 # AWS Infrastructure (本番環境 start / stop)
 # ============================================================
+AWS_PROFILE ?= next-project
 AWS_REGION  ?= ap-northeast-1
-AWS_ACCOUNT ?= $(shell aws sts get-caller-identity --query Account --output text 2>/dev/null)
+AWS_ACCOUNT ?= $(shell AWS_PROFILE=$(AWS_PROFILE) aws sts get-caller-identity --query Account --output text 2>/dev/null)
+export AWS_PROFILE
 ECR_BASE     = $(AWS_ACCOUNT).dkr.ecr.$(AWS_REGION).amazonaws.com
 PROJECT      = next-project
 AWS_STACK    = next-project-edge
