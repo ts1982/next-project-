@@ -255,7 +255,7 @@ Next.js Route Groupsでレイアウトを分離：
 
 MIT
 
-## 🔗 参考リソース123
+## 🔗 参考リソース
 
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Prisma Documentation](https://www.prisma.io/docs)
