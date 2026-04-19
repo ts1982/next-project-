@@ -1,4 +1,4 @@
-.PHONY: help dev build start lint format format-check db-* prisma-* seed clean install infra-start infra-stop infra-status rds-forward dns-flush deploy-admin deploy-user deploy-lambda deploy-all deploy-infra-lambda
+.PHONY: help dev build start lint format format-check db-* prisma-* seed clean install infra-start infra-stop infra-status infra-deploy-base infra-deploy-control-plane rds-forward dns-flush deploy-admin deploy-user deploy-lambda deploy-all deploy-infra-lambda
 
 # デフォルトターゲット
 help:
@@ -22,6 +22,7 @@ help:
 	@echo "  make infra-start                  - Start AWS environment (Lambda → RDS → Edge Stack)"
 	@echo "  make infra-stop                   - Stop AWS environment (Edge Stack → RDS)"
 	@echo "  make infra-status                 - Show current AWS environment status"
+	@echo "  make infra-deploy-base            - Update base stack (IAM roles / Task definitions / VPC)"
 	@echo "  make infra-deploy-control-plane   - Update control-plane stack (IAM / Lambda)"
 	@echo "  make deploy-infra-lambda          - Package & deploy start/stop/notify Lambda code"
 	@echo "  make rds-forward                  - SSM port-forward to production RDS (localhost:15432)"
@@ -146,6 +147,10 @@ AWS_STACK    = next-project-edge
 START_FN     = next-project-start
 STOP_FN      = next-project-stop
 CONTROL_PLANE_STACK = $(PROJECT)-ctrl
+BASE_STACK          = $(PROJECT)-base
+DOMAIN_NAME        ?= studify.click
+HOSTED_ZONE_ID     ?= Z00991062K7QKYDY53G7H
+DB_USERNAME        ?= nextuser
 EDGE_TEMPLATE_S3URL = https://$(PROJECT)-lambda-deploy.s3.$(AWS_REGION).amazonaws.com/edge-stack.yaml
 AUTO_STOP_HOURS    ?= 3
 
@@ -241,6 +246,26 @@ infra-stop:
 	  sleep 30; \
 	done
 	@echo "✅ Environment is DOWN."
+
+infra-deploy-base:
+	@echo "🔧 Deploying base stack (VPC / RDS / IAM / Task definitions)..."
+	@if [ -z "$(DB_PASSWORD)" ]; then \
+	  echo "❌ DB_PASSWORD is required. Run: make infra-deploy-base DB_PASSWORD=<password>"; \
+	  exit 1; \
+	fi
+	@aws cloudformation deploy \
+	  --template-file infra/base-stack.yaml \
+	  --stack-name $(BASE_STACK) \
+	  --capabilities CAPABILITY_NAMED_IAM \
+	  --parameter-overrides \
+	    ProjectName=$(PROJECT) \
+	    DomainName=$(DOMAIN_NAME) \
+	    HostedZoneId=$(HOSTED_ZONE_ID) \
+	    DBMasterUsername=$(DB_USERNAME) \
+	    DBMasterPassword=$(DB_PASSWORD) \
+	  --region $(AWS_REGION) \
+	  --no-fail-on-empty-changeset
+	@echo "✅ base stack deployed"
 
 infra-deploy-control-plane:
 	@echo "🔧 Deploying control-plane stack (IAM roles / Lambda config)..."
