@@ -423,6 +423,18 @@ Resources:
                 Condition:
                   StringEquals:
                     iam:PassedToService: scheduler.amazonaws.com
+        - PolicyName: SESAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    ses:FromAddress: !Sub "noreply@${DomainName}"
 
   # IAM — EventBridge Scheduler → Lambda 実行ロール
   SchedulerExecutionRole:
@@ -606,6 +618,12 @@ Resources:
               Value: "3001"
             - Name: HOSTNAME
               Value: "0.0.0.0"
+            - Name: AWS_DEFAULT_REGION
+              Value: !Ref AWS::Region
+            - Name: SES_FROM_EMAIL
+              Value: !Sub "noreply@${DomainName}"
+            - Name: NEXT_PUBLIC_APP_URL
+              Value: !Sub "https://app.${DomainName}"
           Secrets:
             - Name: DATABASE_URL
               ValueFrom: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/DATABASE_URL"

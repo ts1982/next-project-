@@ -449,3 +449,43 @@ GitHub リポジトリの Secrets に以下を登録:
 | **合計**                      |        | **~$6.33/月** |
 
 > ALB が停止時削除されるため、常時稼働 ($23/月) と比較して大幅に削減。
+
+---
+
+## SES（メール送信）設定
+
+パスワードリセット機能で AWS SES を使用してメールを送信します。
+
+### ドメイン検証
+
+`studify.click` ドメインの DKIM 検証が必要です。Route53 に以下の 3 つの CNAME レコードが登録されている必要があります:
+
+```
+<token1>._domainkey.studify.click → <token1>.dkim.amazonses.com
+<token2>._domainkey.studify.click → <token2>.dkim.amazonses.com
+<token3>._domainkey.studify.click → <token3>.dkim.amazonses.com
+```
+
+トークンは SES コンソールまたは以下のコマンドで確認できます:
+
+```bash
+aws sesv2 get-email-identity --email-identity studify.click --region ap-northeast-1 \
+  --query 'DkimAttributes.Tokens' --output json
+```
+
+### 環境変数（ECS タスク定義で自動設定）
+
+| 変数名                | 値                           | 設定方法          |
+| --------------------- | ----------------------------- | ----------------- |
+| `AWS_DEFAULT_REGION`  | `ap-northeast-1`              | CFn `!Ref`        |
+| `SES_FROM_EMAIL`      | `noreply@studify.click`       | CFn `!Sub`        |
+| `NEXT_PUBLIC_APP_URL` | `https://app.studify.click`   | CFn `!Sub`        |
+
+これらは `base-stack.yaml` の User タスク定義で直接設定されるため、SSM パラメータは不要です。
+
+### IAM 権限
+
+ECS タスクロール (`next-project-ecs-task-role`) に `SESAccess` ポリシーが付与されています:
+
+- `ses:SendEmail` / `ses:SendRawEmail`
+- 送信元アドレスを `noreply@studify.click` に制限（`ses:FromAddress` 条件キー）

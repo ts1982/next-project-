@@ -107,6 +107,22 @@ model User {
 }
 
 // ---------------------------------------------------------------------------
+// Password Reset
+// ---------------------------------------------------------------------------
+
+/// パスワードリセットトークン（SHA-256 ハッシュを保存）
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
 

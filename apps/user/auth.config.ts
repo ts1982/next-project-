@@ -17,7 +17,11 @@ export const authConfig = {
       const pathname = nextUrl.pathname;
 
       const isProtectedRoute = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
-      const isAuthPage = pathname === "/login" || pathname === "/register";
+      const isAuthPage =
+        pathname === "/login" ||
+        pathname === "/register" ||
+        pathname === "/forgot-password" ||
+        pathname === "/reset-password";
 
       if (isProtectedRoute && !isLoggedIn) {
         const callbackUrl = encodeURIComponent(nextUrl.href);
