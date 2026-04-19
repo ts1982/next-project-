@@ -1,4 +1,4 @@
-.PHONY: help dev build start lint format format-check db-* prisma-* seed clean install infra-start infra-stop infra-status dns-flush deploy-admin deploy-user deploy-lambda deploy-all deploy-infra-lambda
+.PHONY: help dev build start lint format format-check db-* prisma-* seed clean install infra-start infra-stop infra-status rds-forward dns-flush deploy-admin deploy-user deploy-lambda deploy-all deploy-infra-lambda
 
 # デフォルトターゲット
 help:
@@ -24,6 +24,7 @@ help:
 	@echo "  make infra-status                 - Show current AWS environment status"
 	@echo "  make infra-deploy-control-plane   - Update control-plane stack (IAM / Lambda)"
 	@echo "  make deploy-infra-lambda          - Package & deploy start/stop/notify Lambda code"
+	@echo "  make rds-forward                  - SSM port-forward to production RDS (localhost:15432)"
 	@echo "  make dns-flush                    - Flush local DNS cache (macOS)"
 	@echo ""
 	@echo "Database:"
@@ -314,6 +315,9 @@ infra-status:
 	    echo "   DNS $$DOMAIN : ❌ unresolved (run: sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder)"; \
 	  fi; \
 	done
+
+rds-forward:
+	@./scripts/rds-port-forward.sh
 
 dns-flush:
 	@echo "🔄 Flushing local DNS cache..."
